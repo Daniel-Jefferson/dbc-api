@@ -1,5 +1,14 @@
 const emailConfig = require('./email-config')();
 const mailgun = require('mailgun-js')(emailConfig);
+const nodemailer = require("nodemailer");
+let transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  auth: {
+    user: "budsbank.txlabz@gmail.com",
+    pass: "qwerty245*@"
+  }
+});
 const CNST = require('../config/constant');
 exports.sendEmail = (recipient, code, requestType, link) =>
     new Promise((resolve, reject) => {
@@ -25,6 +34,7 @@ exports.sendEmail = (recipient, code, requestType, link) =>
         }
 
         mailgun.messages().send(mailData, (error, result) => {
+         // transporter.sendMail(mailData, (error, result) => {
             if (error) {
                 console.log(error);
                 return reject({ status: 400, isSuccess: false, message: error.message });

@@ -1,6 +1,9 @@
-var fcm = require('fcm-notification');
-var fcmKey = require('./fcm-key');
-var FCM = new fcm(fcmKey);
+//var fcm = require('fcm-notification');
+//var fcmKey = require('./fcm-key');
+//var FCM = new fcm(fcmKey);
+
+var fcmInit = require('./fcm-init');
+var paginateInfo = require('paginate-info');
 var helperFile = require('../helpers/helperFunctions');
 var notificationCNST = require('../config/NotificationResponses');
 
@@ -30,7 +33,10 @@ exports.enableDisableNotification = function (req, res) {
            output = {status: 400, isSuccess: false, message: response.message};
            res.json(output);
        } else{
-           SQL = `SELECT d.id, d.name, s.enable FROM dispensaries as d INNER JOIN settings AS s ON s.dispensary_id = d.id WHERE s.user_id = ${userID}`;
+           // SQL = `SELECT d.id, d.name, s.enable FROM dispensaries as d INNER JOIN settings AS s ON s.dispensary_id = d.id WHERE s.user_id = ${userID}`;
+           SQL = `SELECT d.id, d.name, d.image, s.enable FROM dispensaries as d
+            INNER JOIN settings AS s ON s.dispensary_id = d.id
+             WHERE s.user_id = ${userID} AND d.id = ${dispensaryID}`;
            helperFile.executeQuery(SQL).then(responseForGet => {
               if (!responseForGet.isSuccess){
                   output = {status: 400, isSuccess: false, message: responseForGet.message};
@@ -53,6 +59,9 @@ exports.enableDisableNotification = function (req, res) {
 
 exports.getAllSettings = function (req, res) {
   var userID = req.query.user_id || '';
+  var pageSize = req.query.page_size || process.env.PAGE_SIZE;
+  var currentPage = req.query.current_page || process.env.CURRENT_PAGE;
+
   if (!userID){
       output = {status: 400, isSuccess: false, message: "User ID required"};
       res.json(output);
@@ -65,7 +74,14 @@ exports.getAllSettings = function (req, res) {
          res.json(output);
      } else{
          if (resposnseForUserCheck.data.length > 0){
-             SQL = `SELECT d.id, d.name, d.image, s.enable FROM dispensaries as d INNER JOIN settings AS s ON s.dispensary_id = d.id WHERE s.user_id = ${userID}`;
+             // SQL = `SELECT d.id, d.name, d.image, s.enable FROM dispensaries as d INNER JOIN settings AS s ON s.dispensary_id = d.id WHERE s.user_id = ${userID}`;
+             // SQL = `SELECT d.id, d.name, d.image, s.enable FROM dispensaries as d INNER JOIN settings AS s ON s.dispensary_id = d.id WHERE s.user_id = ${userID} AND s.enable = 'true'`;
+             SQL = `SELECT d.id, d.name, d.image, s.enable FROM dispensaries as d
+              INNER JOIN user_dispensaries AS ud ON ud.dispensary_id = d.id
+              INNER JOIN settings AS s ON s.dispensary_id = d.id WHERE s.user_id = ${userID} 
+              AND ud.user_id = ${userID}
+              AND ud.isFollowed = 'true'
+              AND d.status = 1`;
              helperFile.executeQuery(SQL).then(response => {
                  if (!response.isSuccess){
                      output = {status: 400, isSuccess: false, message: response.message};
@@ -78,7 +94,18 @@ exports.getAllSettings = function (req, res) {
                              element.enable = false;
                          }
                      });
-                     output = {status: 200, isSuccess: true, message: "Success", settings: response.data};
+
+                     if(currentPage !== null && currentPage !== '' && pageSize !== null && pageSize !== ''){
+                        const { limit, offset } = paginateInfo.calculateLimitAndOffset(currentPage, pageSize);
+                        const count = response.data.length;
+                        const paginatedData = response.data.slice(offset, offset + limit);
+                        var paginationInfo = paginateInfo.paginate(currentPage, count, paginatedData);
+                        notificationData = paginatedData;
+                      }else{
+                        notificationData = response.data;
+                        paginationInfo = [];
+                      }
+                     output = {status: 200, isSuccess: true, message: "Success", settings: notificationData, pageInfo: paginationInfo};
                      res.json(output);
                  }
              });
@@ -212,7 +239,7 @@ exports.getAllNotifications = function (req, res) {
 exports.getNotificationContent = function (userID, type, limit, offset) {
   return new Promise((resolve)=>{
       SQL = `SELECT n.id, d.id AS dispensary_id ,d.name, d.image, n.title, n.notification, n.created, n.seen FROM notifications AS n INNER JOIN dispensaries as d
-                ON n.dispensary_id = d.id WHERE n.user_id = ${userID} and seen = '${type}' LIMIT ${limit} OFFSET ${offset}`;
+                ON n.dispensary_id = d.id WHERE n.user_id = ${userID} and seen = '${type}' and d.status = '1' LIMIT ${limit} OFFSET ${offset}`;
       helperFile.executeQuery(SQL).then(response => {
           if (!response.isSuccess){
               output = {status: 400, isSuccess: false, message: response.message};
@@ -229,6 +256,9 @@ exports.getReedNotifications = function (req, res) {
   var userID = req.query.user_id || '';
   var limit = req.query.limit || process.env.LIMIT;
   var offset = req.query.offset || process.env.OFF_SET;
+
+  var pageSize = req.query.page_size || process.env.PAGE_SIZE;
+  var currentPage = req.query.current_page || process.env.CURRENT_PAGE;
 
   if (!userID){
       output = {status: 400, isSuccess: false, message: "User ID required"};
@@ -255,7 +285,19 @@ exports.getReedNotifications = function (req, res) {
                              element.read = false;
                          }
                      });
-                     output = {status: 200, isSuccess: true, message: "Success", notifications: responseForSeen.notifications};
+
+                     if(currentPage !== null && currentPage !== '' && pageSize !== null && pageSize !== ''){
+                        const { limit, offset } = paginateInfo.calculateLimitAndOffset(currentPage, pageSize);
+                        const count = responseForSeen.notifications.length;
+                        const paginatedData = responseForSeen.notifications.slice(offset, offset + limit);
+                        var paginationInfo = paginateInfo.paginate(currentPage, count, paginatedData);
+                        notificationData = paginatedData;
+                      }else{
+                        notificationData = responseForSeen.notifications;
+                        paginationInfo = [];
+                      }
+
+                     output = {status: 200, isSuccess: true, message: "Success", notifications: notificationData, pageInfo: paginationInfo};
                      res.json(output)
                  }
              });
@@ -271,6 +313,9 @@ exports.getUnReedNotifications = function (req, res) {
     var userID = req.query.user_id || '';
     var limit = req.query.limit || process.env.LIMIT;
     var offset = req.query.offset || process.env.OFF_SET;
+
+    var pageSize = req.query.page_size || process.env.PAGE_SIZE;
+    var currentPage = req.query.current_page || process.env.CURRENT_PAGE;
 
     if (!userID){
         output = {status: 400, isSuccess: false, message: "User ID required"};
@@ -297,7 +342,18 @@ exports.getUnReedNotifications = function (req, res) {
                                 element.read = false;
                             }
                         });
-                        output = {status: 200, isSuccess: true, message: "Success", notifications: responseForSeen.notifications};
+
+                        if(currentPage !== null && currentPage !== '' && pageSize !== null && pageSize !== ''){
+                            const { limit, offset } = paginateInfo.calculateLimitAndOffset(currentPage, pageSize);
+                            const count = responseForSeen.notifications.length;
+                            const paginatedData = responseForSeen.notifications.slice(offset, offset + limit);
+                            var paginationInfo = paginateInfo.paginate(currentPage, count, paginatedData);
+                            notificationData = paginatedData;
+                          }else{
+                            notificationData = responseForSeen.notifications;
+                            paginationInfo = [];
+                          }
+                        output = {status: 200, isSuccess: true, message: "Success", notifications: notificationData, pageInfo: paginationInfo};
                         res.json(output)
                     }
                 });

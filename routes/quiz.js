@@ -6,58 +6,27 @@ var notification = require('./notifications');
 
 exports.getQuizQuestion = function (req, res) {
   var userID = req.query.user_id || '';
-  var dispensaryID = req.query.dispensary_id || '';
 
-  if (!userID){
-      output = {status: 400, isSuccess: false, message: "User ID required"};
-      res.json(output);
-      return;
-  }
-    if (!dispensaryID){
-        output = {status: 400, isSuccess: false, message: "Dispensary ID required"};
+    if (!userID){
+        output = {status: 400, isSuccess: false, message: "User ID required"};
         res.json(output);
         return;
     }
+    
     SQL = `SELECT * FROM users WHERE id = ${userID}`;
     helperFile.executeQuery(SQL).then(checkUser => {
        if (!checkUser.isSuccess){
            output = {status: 400, isSuccess: false, message: checkUser.message};
            res.json(output);
        } else{
-           if (checkUser.data.length > 0){
-               SQL = `SELECT * FROM dispensaries WHERE id = ${dispensaryID}`;
-               helperFile.executeQuery(SQL).then(checkDispensary => {
-                  if (!checkDispensary.isSuccess){
-                      output = {status: 400, isSuccess: false, message: checkDispensary.message};
-                      res.json(output);
-                  } else{
-                      if (checkDispensary.data.length > 0){
-                          SQL = `SELECT id FROM quiz WHERE dispensary_id = ${dispensaryID} AND status = 1 LIMIT 1`;
-                          helperFile.executeQuery(SQL).then(responseForQuiz => {
-                              if (!responseForQuiz.isSuccess){
-                                  output = {status: 400, isSuccess: false, message: responseForQuiz.message};
-                                  res.json(output);
-                              } else{
-                                  if (responseForQuiz.data.length > 0){
-                                      helperFile.getQuizQuestions(responseForQuiz.data[0].id, userID).then(response => {
-                                          res.json(response);
-                                      })
-                                  }else{
-                                      output = {status: 400, isSuccess: false, message: "No quiz available for this dispensary"};
-                                      res.json(output);
-                                  }
-                              }
-                          });
-                      }else{
-                          output = {status: 400, isSuccess: false, message: "Invalid Dispansry"};
-                          res.json(output);
-                      }
-                  }
-               });
-           }else{
+            if (checkUser.data.length > 0){
+                helperFile.getQuizQuestions(userID).then(response => {
+                    res.json(response);
+                })                 
+            }else{
                output = {status: 400, isSuccess: false, message: "Invalid User"};
                res.json(output);
-           }
+            }
        }
     });
 };
@@ -125,7 +94,7 @@ exports.saveQuizResult = function (req, res) {
                                                if (!responseForAddVoucher.isSuccess){
                                                    output = {status: 400, isSuccess: false, message: responseForAddVoucher.message};
                                                }else{
-                                                   SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
+                                                   SQL = `SELECT ${parseInt(process.env.COINS)} as reward, v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
                                                     FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.id = ${responseForAddVoucher.voucher.insertId}`;
                                                    helperFile.executeQuery(SQL).then(responseForGetVoucher => {
                                                        if (!responseForGetVoucher.isSuccess){

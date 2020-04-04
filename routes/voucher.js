@@ -1,10 +1,14 @@
 var helperFile = require('../helpers/helperFunctions.js');
 var auth = require('./auth');
+var paginateInfo = require('paginate-info');
 
 exports.getAvailableVouchersList = function (req, res) {
   var userID = req.query.user_id || '';
     var limit = req.query.limit || process.env.LIMIT;
     var offset = req.query.offset || process.env.OFF_SET;
+    var pageSize = req.query.page_size || process.env.PAGE_SIZE;
+    var currentPage = req.query.current_page || process.env.CURRENT_PAGE;
+    
   if (!userID){
       output = {status: 400, isSuccess: false, message: "User ID required"};
       res.json(output);
@@ -17,7 +21,7 @@ exports.getAvailableVouchersList = function (req, res) {
          res.json(output);
      } else{
          if (checkUser.data.length > 0){
-             exports.getVoucherContent(userID, 'available', limit, offset).then(response => {
+             exports.getVoucherContent(userID, 'available', limit, offset, currentPage, pageSize).then(response => {
                  res.json(response);
              });
          }else{
@@ -32,6 +36,10 @@ exports.getRedeemedVouchersList = function (req, res) {
     var userID = req.query.user_id || '';
     var limit = req.query.limit || process.env.LIMIT;
     var offset = req.query.offset || process.env.OFF_SET;
+    var pageSize = req.query.page_size || process.env.PAGE_SIZE;
+    var currentPage = req.query.current_page || process.env.CURRENT_PAGE;
+
+
     if (!userID){
         output = {status: 400, isSuccess: false, message: "User ID required"};
         res.json(output);
@@ -44,7 +52,7 @@ exports.getRedeemedVouchersList = function (req, res) {
             res.json(output);
         } else {
             if (checkUser.data.length > 0) {
-                exports.getVoucherContent(userID, 'redeemed', limit, offset).then(response => {
+                exports.getVoucherContent(userID, 'redeemed', limit, offset, currentPage, pageSize).then(response => {
                     res.json(response);
                 });
             } else {
@@ -55,7 +63,7 @@ exports.getRedeemedVouchersList = function (req, res) {
     });
 };
 
-exports.getVoucherContent = function (userID, type, limit, offset) {
+exports.getVoucherContent = function (userID, type, limit, offset, currentPage, pageSize) {
     return new Promise((resolve)=>{
         SQL = `SELECT * FROM users WHERE id = ${userID}`;
         helperFile.executeQuery(SQL).then(responseForUserCheck => {
@@ -65,13 +73,19 @@ exports.getVoucherContent = function (userID, type, limit, offset) {
             } else{
                 if (responseForUserCheck.data.length > 0){
                     if (type === 'available'){
+                        // SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
+                        //     FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
+                        //     v.status = 'true' AND v.expiry > CURRENT_TIMESTAMP LIMIT ${limit} OFFSET ${offset}`;
                         SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
-                            FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
-                            v.status = 'true' AND v.expiry > CURRENT_TIMESTAMP LIMIT ${limit} OFFSET ${offset}`;
+                        FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
+                        v.status = 'true' AND v.expiry > CURRENT_TIMESTAMP`;
                     }else{
+                        // SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
+                        //     FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
+                        //     v.status = 'false' ORDER BY v.id DESC LIMIT ${limit} OFFSET ${offset}`;
                         SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
-                            FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
-                            v.status = 'false' ORDER BY v.id DESC LIMIT ${limit} OFFSET ${offset}`;
+                        FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
+                        v.status = 'false' ORDER BY v.id DESC`;
                     }
 
                     helperFile.executeQuery(SQL).then(responseForVouchers => {
@@ -80,7 +94,19 @@ exports.getVoucherContent = function (userID, type, limit, offset) {
                             resolve(output);
                         } else{
                             helperFile.addThingsToVoucherResponse(responseForVouchers.data, type).then(response => {
-                                output = {status: 200, isSuccess: true, message: "Success", vouchers: response};
+
+                              if(currentPage !== null && currentPage !== '' && pageSize !== null && pageSize !== ''){
+                                  const { limit, offset } = paginateInfo.calculateLimitAndOffset(currentPage, pageSize);
+                                  const count = response.length;
+                                  // console.log()
+                                  const paginatedData = response.slice(offset, offset + limit);
+                                  var paginationInfo = paginateInfo.paginate(currentPage, count, paginatedData);
+                                  voucherData = paginatedData;
+                                }else{
+                                  voucherData = response;
+                                  paginationInfo = [];
+                                }
+                                output = {status: 200, isSuccess: true, message: "Success", vouchers: voucherData, pageInfo: paginationInfo};
                                 resolve(output);
                             });
                         }
