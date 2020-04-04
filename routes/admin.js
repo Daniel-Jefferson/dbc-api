@@ -203,6 +203,8 @@ exports.addDispensary = function(req, res){
     const closing_time = req.body.closing_time || '';
     const open_day = req.body.open_day || '';
     const close_day = req.body.close_day || '';
+    const deal = req.body.deal || '';
+    const subscription_type = 'free';
 
     if (!user_id){
         output = {status: 400, isSuccess: false, message: "User ID required"};
@@ -289,7 +291,7 @@ exports.addDispensary = function(req, res){
                                                 }else{
                                                     if (!responseDispensaryNameValidation.data){
                                                         SQL = `INSERT INTO dispensaries SET user_id = ${user_id}, featured = '${featured}', name = '${name}', longitude = ${longitude},
-                                                        latitude = ${latitude}, phone = '${phone}', address = '${address}'`;
+                                                        latitude = ${latitude}, phone = '${phone}', address = '${address}', deal = '${deal}', subscription_type = '${subscription_type}'`;
                                                         helperFile.executeQuery(SQL).then(response => {
                                                             if (!response.isSuccess) {
                                                                 output = {status: 400, isSuccess: false, message: response.message};
@@ -307,23 +309,26 @@ exports.addDispensary = function(req, res){
                                                                         helperFile.executeQuery(SQL).then(responseForInsertingTimings => {
                                                                             const dispensary_code = crypto.randomBytes(4).toString('hex');
                                                                             if (!responseForInsertingTimings.isSuccess){
+                                                                                output = {status: 400, isSuccess: false, message: responseForInsertingTimings.message};
+                                                                                res.json(output);
+
+                                                                            }else{
+
                                                                                 SQL = `INSERT INTO dispensary_codes (dispensary_id, code) VALUES (${responseForDispensaryID.data[0].id}, '${dispensary_code}') `;
                                                                                 
                                                                                 helperFile.executeQuery(SQL).then(responseForInsertingDCode => {
-                                                                                        const dispensary_code = crypto.randomBytes(4).toString('hex');
-                                                                                        if (!responseForInsertingDCode.isSuccess){
-                                                                                            SQL = `INSERT INTO dispensary_codes (dispensary_id, code) VALUES (${responseForDispensaryID.data[0].id}, '${dispensary_code}') `;
-                                                                                            output = {status: 400, isSuccess: false, message: responseForInsertingDCode.message};
-                                                                                            res.json(output);
-                                                                                        }else{
-                                                                                            output = {status: 200, isSuccess: true, message: "Success", data: {'dispensaryId': responseForDispensaryID.data[0].id}};
-                                                                                            res.json(output);
-                                                                                        }
-                                                                                    })
-
-                                                                            }else{
-                                                                                output = {status: 200, isSuccess: true, message: "Success", data: {'dispensaryId': responseForDispensaryID.data[0].id}};
-                                                                                res.json(output);
+                                                                                    const dispensary_code = crypto.randomBytes(4).toString('hex');
+                                                                                    if (!responseForInsertingDCode.isSuccess){
+                                                                                        SQL = `INSERT INTO dispensary_codes (dispensary_id, code) VALUES (${responseForDispensaryID.data[0].id}, '${dispensary_code}') `;
+                                                                                        output = {status: 400, isSuccess: false, message: responseForInsertingDCode.message};
+                                                                                        res.json(output);
+                                                                                    }else{
+                                                                                        output = {status: 200, isSuccess: true, message: "Success", data: {'dispensaryId': responseForDispensaryID.data[0].id}};
+                                                                                        res.json(output);
+                                                                                    }
+                                                                                })
+                                                                                // output = {status: 200, isSuccess: true, message: "Success", data: {'dispensaryId': responseForDispensaryID.data[0].id}};
+                                                                                // res.json(output);
                                                                             }
                                                                         })
                                                                     }
@@ -375,6 +380,8 @@ exports.updateDispensary = function(req, res){
     const open_day = req.body.open_day || '';
     const close_day = req.body.close_day || '';
     const dispensaryId = req.body.dispensary_id;
+    const deal = req.body.deal || '';
+    const subscription_type = 'free';
 
     if (!name){
         output = {status: 400, isSuccess: false, message: "Title required"};
@@ -441,7 +448,7 @@ exports.updateDispensary = function(req, res){
                         }else{
                             if (!responseDispensaryNameValidation.data){
                                 SQL = `UPDATE dispensaries SET featured = '${featured}', name = '${name}', longitude = ${longitude},
-                                latitude = ${latitude}, phone = '${phone}', address = '${address}' WHERE id = ${dispensaryId}`;
+                                latitude = ${latitude}, phone = '${phone}', address = '${address}', deal = '${deal}', subscription_type = '${subscription_type}' WHERE id = ${dispensaryId}`;
                                 helperFile.executeQuery(SQL).then(response => {
                                     if (!response.isSuccess) {
                                         output = {status: 400, isSuccess: false, message: response.message};
@@ -1131,6 +1138,31 @@ exports.getDispensaryByAdminId = (req, res) => {
                 })
             }else{
                 output = {status: 400, isSuccess: false, message: "Invalid Dispensary ID"};
+                res.json(output);
+            }
+        }
+    })
+}
+
+
+
+exports.getAllVouchersList = (req, res) => {
+    const OFFSET = req.query.page || process.env.OFF_SET; console.log(OFFSET);
+    const LIMIT = req.query.size || process.env.LIMIT; console.log(LIMIT);
+    SQL = `SELECT u.first_name,u.last_name,u.email,v.status,v.created,v.expiry,d.name FROM vouchers as v 
+    JOIN users as u ON v.user_id = u.id
+    JOIN dispensaries as d ON v.dispensary_id = d.id
+    LIMIT ${LIMIT} OFFSET ${OFFSET}`;
+    helperFile.executeQuery(SQL).then( response => { 
+        if (!response.isSuccess){ 
+            output = {status: 400, isSuccess: false, message: response.message};
+            res.json(output);
+        }else{ 
+            if (response.data.length > 0){
+                output = {status: 200, isSuccess: true, message: "Success", data: response.data};
+                res.json(output);
+            }else{
+                output = {status: 400, isSuccess: false, message: "No Vouchers Available"};
                 res.json(output);
             }
         }

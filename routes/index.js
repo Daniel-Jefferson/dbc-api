@@ -215,3 +215,6 @@ router.get('/admin/:id', admin.getAdminById);
 router.post('/admin/register/business', business.register);
 router.post('/admin/register/check-email', business.checkEmail);
 router.post('/admin/process-payment', admin.initialPayment);
+
+// Vouchers routes
+router.get('/admin/voucher/getall', admin.getAllVouchersList);

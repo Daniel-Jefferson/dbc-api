@@ -76,7 +76,7 @@ exports.getAllSettings = function (req, res) {
          if (resposnseForUserCheck.data.length > 0){
              // SQL = `SELECT d.id, d.name, d.image, s.enable FROM dispensaries as d INNER JOIN settings AS s ON s.dispensary_id = d.id WHERE s.user_id = ${userID}`;
              // SQL = `SELECT d.id, d.name, d.image, s.enable FROM dispensaries as d INNER JOIN settings AS s ON s.dispensary_id = d.id WHERE s.user_id = ${userID} AND s.enable = 'true'`;
-             SQL = `SELECT d.id, d.name, d.image, s.enable FROM dispensaries as d
+             SQL = `SELECT d.id, d.name, d.deal, d.image, s.enable FROM dispensaries as d
               INNER JOIN user_dispensaries AS ud ON ud.dispensary_id = d.id
               INNER JOIN settings AS s ON s.dispensary_id = d.id WHERE s.user_id = ${userID} 
               AND ud.user_id = ${userID}

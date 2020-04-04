@@ -76,12 +76,12 @@ exports.getAvailableDispensaries = function(userID, longitude, latitude, limit, 
 
 
         if(showAll !== null && showAll !== ''){
-            SQL = `SELECT id, name, longitude, latitude, phone, address, image,
+            SQL = `SELECT id, name, longitude, latitude, phone, deal, address, image,
             created, ( 6371 * acos( cos( radians(${latitude}) ) * cos( radians( latitude ) ) *
             cos( radians( longitude ) - radians(${longitude}) ) + sin( radians(${latitude}) ) *
             sin( radians( latitude ) ) ) ) AS distance FROM dispensaries WHERE status = '1' ORDER BY distance`;
         }else{
-            SQL = `SELECT id, name, longitude, latitude, phone, address, image,
+            SQL = `SELECT id, name, longitude, latitude, phone, deal, address, image,
             created, ( 6371 * acos( cos( radians(${latitude}) ) * cos( radians( latitude ) ) *
             cos( radians( longitude ) - radians(${longitude}) ) + sin( radians(${latitude}) ) *
             sin( radians( latitude ) ) ) ) AS distance FROM dispensaries WHERE id NOT
@@ -308,7 +308,7 @@ exports.getDispensaryByID = function (req, res) {
            res.json(output);
        } else{
            if (userCheck.data.length > 0){
-               SQL = `SELECT id, name, longitude, latitude, phone, address, image, opening_time, closing_time,
+               SQL = `SELECT id, name, longitude, latitude, phone, deal, address, image, opening_time, closing_time,
             created FROM dispensaries WHERE id = ${dispensaryID} AND status = '1'`;
                helperFile.executeQuery(SQL).then(response => {
                    if (!response.isSuccess){
@@ -346,7 +346,7 @@ exports.getCompletedDispensaries = function (userID, limit, offset, currentPage,
      // SQL = `SELECT d.id, d.name, d.longitude, d.latitude, d.phone, d.address, d.image, d.image,
      //        d.created FROM dispensaries AS d INNER JOIN user_disabled_dispensaries as udd ON udd.dispensary_id = d.id
      //        WHERE udd.user_id = ${userID} AND udd.expiry > CURRENT_TIMESTAMP ORDER BY udd.created DESC LIMIT ${limit} OFFSET ${offset}`;
-    SQL = `SELECT d.id, d.name, d.longitude, d.latitude, d.phone, d.address, d.image, d.image,
+    SQL = `SELECT d.id, d.name, d.longitude, d.latitude, d.phone, d.deal, d.address, d.image, d.image,
     d.created FROM dispensaries AS d INNER JOIN user_disabled_dispensaries as udd ON udd.dispensary_id = d.id
     WHERE udd.user_id = ${userID} AND udd.expiry > CURRENT_TIMESTAMP ORDER BY udd.created DESC`;
     // console.log('dfdfdfdf');
@@ -441,7 +441,7 @@ exports.searchDispensary = function (req, res) {
             // WHERE user_id = ${userID} AND status = 'true' AND expiry > CURRENT_TIMESTAMP)
             // ORDER BY id DESC`;
 
-            SQL = `SELECT id, name, longitude, latitude, phone, address, image, opening_time, closing_time,
+            SQL = `SELECT id, name, longitude, latitude, phone, address, deal, image, opening_time, closing_time,
             created FROM dispensaries WHERE name LIKE '%${keyword}%' AND status = '1' ORDER BY id DESC`;
 
                helperFile.executeQuery(SQL).then(response => {
@@ -517,7 +517,7 @@ exports.featuredDispensariesList = function (req, res) {
             // WHERE user_id = ${userID} AND status = 'true' AND expiry > CURRENT_TIMESTAMP)
             // ORDER BY id DESC LIMIT ${limit} OFFSET ${offset}`;
 
-            SQL = `SELECT id, name, longitude, latitude, phone, address, image,
+            SQL = `SELECT id, name, longitude, deal , latitude, phone, address, image,
             created, ( 6371 * acos( cos( radians(${latitude}) ) * cos( radians( latitude ) ) *
             cos( radians( longitude ) - radians(${longitude}) ) + sin( radians(${latitude}) ) *
             sin( radians( latitude ) ) ) ) AS distance FROM dispensaries WHERE featured = 'true' AND status = '1' ORDER BY distance`;
@@ -562,7 +562,7 @@ exports.userFollowedDispensaries = function (req, res) {
            res.json(output);
        } else{
            if (userCheck.data.length > 0){
-               SQL = `SELECT d.id, d.name, d.longitude, d.latitude, d.phone, d.address, d.image,
+               SQL = `SELECT d.id, d.name,d.deal, d.longitude, d.latitude, d.phone, d.address, d.image,
             d.created FROM dispensaries AS d INNER JOIN user_dispensaries AS ufd ON d.id = ufd.dispensary_id
             WHERE ufd.user_id = ${userID} ORDER BY ufd.id DESC LIMIT ${limit} OFFSET ${offset}`;
                helperFile.executeQuery(SQL).then(response => {
