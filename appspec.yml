@@ -2,7 +2,8 @@ version: 0.0
 os: linux  
 files:  
   - source: /  
-    destination: /app/backend/back  
+    destination: /app/backend/back
+    overwrite: true
 hooks:  
   ApplicationStart:  
     - location: scripts/start_server.sh  
