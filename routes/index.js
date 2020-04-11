@@ -19,6 +19,9 @@ router.post('/api/v1/user/verify', auth.verifyUser);
 router.post('/api/v1/user/verify-code', auth.verifyCode);
 router.get('/api/v1/user/profile', auth.getUserProfile);
 // router.get('/api/v1/fcm/notification', fcm.sendTestFcmNotification);
+router.get('/', function(req, res, next){
+    res.send('BackEnd BudsBank is running on port 3300.');
+});
 
 router.post('/forget-password', auth.forgotPassword);
 router.get('/forgetPassword/:code', web.forgotPassword);
