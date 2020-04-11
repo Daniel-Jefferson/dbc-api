@@ -1,6 +1,5 @@
 touch ~/.bash_profile
 export NVM_DIR="$HOME/.nvm"
-who
 . /home/ec2-user/.nvm/nvm.sh
 nvm install node
 npm install pm2 -g
