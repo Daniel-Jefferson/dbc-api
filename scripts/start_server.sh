@@ -1,7 +1,7 @@
 touch ~/.bash_profile
 export NVM_DIR="$HOME/.nvm"
-pwd
-. ~/.nvm/nvm.sh
+who
+. /home/ec2-user/.nvm/nvm.sh
 nvm install node
 npm install pm2 -g
 pm2 delete backend 
