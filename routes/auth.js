@@ -1277,7 +1277,7 @@ auth.updateUserProfile = function(req, imageName){
                             SQL = `UPDATE users SET username = '${userName}', first_name = '${firstName}', last_name = '${lastName}',
                                    phone = '${phone}' WHERE id = ${userID}` ;
                         }else{  console.log(imageName);
-                            var imagePath = process.env.BASE_URL+'/images/'+imageName;
+                            var imagePath = imageName;
                             SQL = `UPDATE users SET username = '${userName}', first_name = '${firstName}', last_name = '${lastName}',
                                    phone = '${phone}', image = '${imagePath}' WHERE id = ${userID}` ;
                         }
