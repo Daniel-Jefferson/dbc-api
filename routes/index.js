@@ -11,6 +11,8 @@ const cron = require("node-cron");
 var helperFile = require('../helpers/helperFunctions.js');
 var admin = require('./admin.js');
 var business = require('./business.js');
+var async = require('async');
+var fcmToken = require('./fcm-token');
 
 router.post('/register', auth.register);
 router.post('/login', auth.login);
@@ -54,6 +56,8 @@ router.get('/api/v1/notification/unread-notifications', notification.getUnReedNo
 router.post('/api/v1/notification/mark-read', notification.markReadNotification);
 router.post('/api/v1/notification/delete', notification.deleteNotification);
 router.post('/data-entry', notification.doDataEntry);
+
+router.post('/api/v1/fcm/update-token', fcmToken.updateToken);
 
 var multer = require('multer');
 var storage = multer.diskStorage({
@@ -151,6 +155,32 @@ cron.schedule('* * * * *', () => {
             console.log('success');
         }
     });
+});
+
+cron.schedule('* 12 * * *', () => {
+    console.log('cron task');
+
+    SQL = `SELECT * from fcm_tokens`;
+    helperFile.executeQuery(SQL).then(responseForTokens => {
+        if (!responseForTokens.isSuccess) {
+            console.log('cron job error');
+        } else {
+            if (responseForTokens.data.length > 0) {
+                var tokens = [];
+                responseForTokens.data.forEach(data => {
+                    tokens.push(data.token);
+                })
+                fcm.sendFcmNotification({
+                        body: "Check out today's Daily Deals!",
+                        title: "Daily Deals",
+                    }, '', tokens);
+            }
+        }
+    });
+
+}, {
+    scheduled: true,
+    timezone: "America/New_York"
 });
 
 /* Admin Routes */

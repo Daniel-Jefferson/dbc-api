@@ -1,16 +1,17 @@
 var { fcmAdmin } = require('./fcm-init');
 
-exports.sendFcmNotification = function(obj, notificationDevices)
+exports.sendFcmNotification = function(notificatonObj, dataObj, notificationDevices)
 {
     console.log('------, fcm , -------', notificationDevices);
 
     notificationDevices.forEach(function(registrationToken) {
         // See documentation on defining a message payload.
         var message = {
+            notification: notificatonObj,
             android: {
                 priority: 'high',
                 data: {
-                    data: JSON.stringify(obj)
+                    data: dataObj
                 }
             },
             token: registrationToken

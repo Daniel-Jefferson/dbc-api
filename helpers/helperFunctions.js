@@ -884,3 +884,41 @@ exports.checkBusinessEmail = (email) => {
     })
     
 }
+
+exports.updateFCMToken = function(userID, token, deviceID) {
+    console.log(userID);
+    console.log(token);
+    console.log(deviceID);
+    return new Promise((resolve)=>{
+        SQL = `SELECT * FROM fcm_tokens WHERE user_id = '${userID}' AND device_id = ${deviceID}`;
+        exports.executeQuery(SQL).then(response =>{
+            if (!response.isSuccess){
+                output = {status: 400, isSuccess: false, message: response.message };
+            }else{
+                if (response.data.length > 0){
+                    SQL = `UPDATE fcm_tokens SET token = '${token}' WHERE user_id = '${userID}' AND device_id = ${deviceID}`;
+                    exports.executeQuery(SQL).then(responseForUpdate => {
+                        if (!responseForCheck.isSuccess){
+                            output = { status:400, isSuccess:false, message: responseForUpdate.message };
+                            resolve(output);
+                        }else{
+                            output = { status:200, isSuccess:true, message: "Success" };
+                            resolve(output);
+                        }
+                    });
+                }else{
+                    SQL = `INSERT INTO fcm_tokens SET user_id = '${userID}', device_id = ${deviceID}, token = '${token}'`;
+                    exports.executeQuery(SQL).then(responseForInsert => {
+                        if (!responseForInsert.isSuccess){
+                            output = { status:400, isSuccess:false, message: responseForInsert.message };
+                            resolve(output);
+                        }else{
+                            output = { status:200, isSuccess:true, message: "Success" };
+                            resolve(output);
+                        }
+                    });
+                }
+            }
+        });
+    });
+};
