@@ -66,66 +66,74 @@ exports.saveQuizResult = function (req, res) {
                        }else{
                            if (checkDispensary.data.length > 0)
                            {
-                               SQL = `SELECT * FROM quiz_results WHERE user_id = ${userID} AND dispensary_id = ${dispensaryID}`;
-                               helperFile.executeQuery(SQL).then(responseForCheck => {
-                                   if (!responseForCheck.isSuccess){
-                                       output = {status: 400, isSuccess: false, message: responseForCheck.message};
-                                       res.json(output);
-                                   } else{
-                                       if (responseForCheck.data.length > 0){
-                                           SQL = `UPDATE quiz_results SET status = '${status}' WHERE user_id = ${userID} AND dispensary_id = ${dispensaryID}`;
-                                           helperFile.executeQuery(SQL).then(responseForUpdate => {
-                                               if (!responseForUpdate.isSuccess){
-                                                   output = {status: 400, isSuccess: false, message: responseForUpdate.message};
-                                                   res.json(output);
-                                               }
-                                           });
-                                       }else{
-                                           SQL = `INSERT INTO quiz_results SET status = '${status}', user_id = ${userID}, dispensary_id = ${dispensaryID}`;
-                                           helperFile.executeQuery(SQL).then(responseForInsert => {
-                                               if (!responseForInsert.isSuccess){
-                                                   output = {status: 400, isSuccess: false, message: responseForInsert.message};
-                                                   res.json(output);
-                                               }
-                                           });
-                                       }
-                                       if (status === 'true'){
-                                           helperFile.addVoucher(userID, dispensaryID).then(responseForAddVoucher=>{
-                                               if (!responseForAddVoucher.isSuccess){
-                                                   output = {status: 400, isSuccess: false, message: responseForAddVoucher.message};
-                                               }else{
-                                                   SQL = `SELECT ${parseInt(process.env.COINS)} as reward, v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
-                                                    FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.id = ${responseForAddVoucher.voucher.insertId}`;
-                                                   helperFile.executeQuery(SQL).then(responseForGetVoucher => {
-                                                       if (!responseForGetVoucher.isSuccess){
-                                                           output = {status: 400, isSuccess: false, message: responseForGetVoucher.message};
+                               SQL = `SELECT * FROM user_disabled_dispensaries WHERE user_id = ${userID} AND dispensary_id = ${dispensaryID}`;
+                               helperFile.executeQuery(SQL).then(responseForDisabled => {
+                                   if (!responseForDisabled.isSuccess) {
+                                       output = {status: 400, isSuccess: false, message: responseForDisabled.message};
+                                   } else {
+                                       SQL = `SELECT * FROM quiz_results WHERE user_id = ${userID} AND dispensary_id = ${dispensaryID}`;
+                                       helperFile.executeQuery(SQL).then(responseForCheck => {
+                                           if (!responseForCheck.isSuccess){
+                                               output = {status: 400, isSuccess: false, message: responseForCheck.message};
+                                               res.json(output);
+                                           } else{
+                                               if (responseForCheck.data.length > 0){
+                                                   SQL = `UPDATE quiz_results SET status = '${status}' WHERE user_id = ${userID} AND dispensary_id = ${dispensaryID}`;
+                                                   helperFile.executeQuery(SQL).then(responseForUpdate => {
+                                                       if (!responseForUpdate.isSuccess){
+                                                           output = {status: 400, isSuccess: false, message: responseForUpdate.message};
                                                            res.json(output);
-                                                       } else{
-                                                           output = {status: 200, isSuccess: true, message: "Quiz Results saved successfully", voucher : responseForGetVoucher.data[0]};
+                                                       }
+                                                   });
+                                               }else{
+                                                   SQL = `INSERT INTO quiz_results SET status = '${status}', user_id = ${userID}, dispensary_id = ${dispensaryID}`;
+                                                   helperFile.executeQuery(SQL).then(responseForInsert => {
+                                                       if (!responseForInsert.isSuccess){
+                                                           output = {status: 400, isSuccess: false, message: responseForInsert.message};
                                                            res.json(output);
                                                        }
                                                    });
                                                }
-                                           });
-                                       }else{
-                                           output = {status: 200, isSuccess: true, message: "Quiz Results saved successfully"};
-                                           res.json(output);
-                                       }
-                                   }
-                               });
-                               helperFile.addUserDisabledDispensary(userID, dispensaryID).then(responseForAddUserDisabledDispensary =>{
-                                   if (!responseForAddUserDisabledDispensary.isSuccess){
-                                       output = {status: 400, isSuccess: false, message: responseForAddUserDisabledDispensary.message};
-                                   }else{
-                                       output = {status: 200, isSuccess: true, message: "Dispensary disabled successfully"};
-                                   }
-                               });
+                                               if (status === 'true'){
+                                                   helperFile.addVoucher(userID, dispensaryID).then(responseForAddVoucher=>{
+                                                       if (!responseForAddVoucher.isSuccess){
+                                                           output = {status: 400, isSuccess: false, message: responseForAddVoucher.message};
+                                                       }else{
+                                                           SQL = `SELECT ${parseInt(process.env.COINS)} as reward, v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
+                                                    FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.id = ${responseForAddVoucher.voucher.insertId}`;
+                                                           helperFile.executeQuery(SQL).then(responseForGetVoucher => {
+                                                               if (!responseForGetVoucher.isSuccess){
+                                                                   output = {status: 400, isSuccess: false, message: responseForGetVoucher.message};
+                                                                   res.json(output);
+                                                               } else{
+                                                                   output = {status: 200, isSuccess: true, message: "Quiz Results saved successfully", voucher : responseForGetVoucher.data[0], remainCount: 0};
+                                                                   res.json(output);
+                                                               }
+                                                           });
+                                                       }
+                                                   });
+                                               }else{
+                                                   const remainCount = responseForDisabled.data.length > 0 ? 0 : 1;
+                                                   output = {status: 200, isSuccess: true, message: "Quiz Results saved successfully", remainCount: remainCount};
+                                                   res.json(output);
+                                               }
+                                           }
+                                       });
+                                       helperFile.addUserDisabledDispensary(userID, dispensaryID, status === 'true' ? 0 : 1).then(responseForAddUserDisabledDispensary =>{
+                                           if (!responseForAddUserDisabledDispensary.isSuccess){
+                                               output = {status: 400, isSuccess: false, message: responseForAddUserDisabledDispensary.message};
+                                           }else{
+                                               output = {status: 200, isSuccess: true, message: "Dispensary disabled successfully"};
+                                           }
+                                       });
 
-                               notification.addQuizNotification(userID, dispensaryID, status).then(responseForNotification => {
-                                   if (!responseForNotification.isSuccess){
-                                       output = {status: 400, isSuccess: false, message: responseForNotification.message};
-                                   }else{
-                                       output = {status: 200, isSuccess: true, message: "Notification added  successfully"};
+                                       notification.addQuizNotification(userID, dispensaryID, status).then(responseForNotification => {
+                                           if (!responseForNotification.isSuccess){
+                                               output = {status: 400, isSuccess: false, message: responseForNotification.message};
+                                           }else{
+                                               output = {status: 200, isSuccess: true, message: "Notification added  successfully"};
+                                           }
+                                       });
                                    }
                                });
                            }else{
