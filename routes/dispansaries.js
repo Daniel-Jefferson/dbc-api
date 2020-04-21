@@ -86,7 +86,7 @@ exports.getAvailableDispensaries = function(userID, longitude, latitude, limit, 
             cos( radians( longitude ) - radians(${longitude}) ) + sin( radians(${latitude}) ) *
             sin( radians( latitude ) ) ) ) AS distance FROM dispensaries WHERE id NOT
             IN (SELECT dispensary_id FROM user_disabled_dispensaries WHERE user_id = ${userID} AND
-            status = 'true' AND expiry > CURRENT_TIMESTAMP) AND status = '1' ORDER BY distance`;
+            status = 'true' AND expiry > CURRENT_TIMESTAMP AND remain_count = 0) AND status = '1' ORDER BY distance`;
         }
 
 
@@ -348,7 +348,7 @@ exports.getCompletedDispensaries = function (userID, limit, offset, currentPage,
      //        WHERE udd.user_id = ${userID} AND udd.expiry > CURRENT_TIMESTAMP ORDER BY udd.created DESC LIMIT ${limit} OFFSET ${offset}`;
     SQL = `SELECT d.id, d.name, d.longitude, d.latitude, d.phone, d.deal, d.address, d.image, d.image,
     d.created FROM dispensaries AS d INNER JOIN user_disabled_dispensaries as udd ON udd.dispensary_id = d.id
-    WHERE udd.user_id = ${userID} AND udd.expiry > CURRENT_TIMESTAMP ORDER BY udd.created DESC`;
+    WHERE udd.user_id = ${userID} AND udd.remain_count = 0 AND udd.expiry > CURRENT_TIMESTAMP ORDER BY udd.created DESC`;
     // console.log('dfdfdfdf');
      helperFile.executeQuery(SQL).then(response=>{ //console.log(response)
         if (!response.isSuccess){
