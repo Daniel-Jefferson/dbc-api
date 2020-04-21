@@ -506,7 +506,7 @@ exports.addImageToDispensary = function(req, imageName){
                 resolve(checkResponse);
             }else{
                 if (checkResponse.data){ 
-                    SQL = `UPDATE dispensaries SET image = '${process.env.BASE_URL}/images/${imageName}' WHERE id = ${dispensaryId}`; 
+                    SQL = `UPDATE dispensaries SET image = '${imageName}' WHERE id = ${dispensaryId}`; 
                     helperFile.executeQuery(SQL).then(response => { 
                         resolve(response)
                     })

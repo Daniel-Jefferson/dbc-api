@@ -1,4 +1,5 @@
 var express = require('express');
+const S3 = require('aws-sdk/clients/s3');
 var router = express.Router();
 var auth = require('./auth');
 var web = require('./webPreview');
@@ -11,6 +12,8 @@ const cron = require("node-cron");
 var helperFile = require('../helpers/helperFunctions.js');
 var admin = require('./admin.js');
 var business = require('./business.js');
+var async = require('async');
+var fcmToken = require('./fcm-token');
 
 router.post('/register', auth.register);
 router.post('/login', auth.login);
@@ -55,29 +58,10 @@ router.post('/api/v1/notification/mark-read', notification.markReadNotification)
 router.post('/api/v1/notification/delete', notification.deleteNotification);
 router.post('/data-entry', notification.doDataEntry);
 
+router.post('/api/v1/fcm/update-token', fcmToken.updateToken);
+
 var multer = require('multer');
-var storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, './public/images');
-    },
-    filename: (req, file, cb) => {
-        console.log(file);
-        var filetype = '';
-        if(file.mimetype === 'image/png') {
-            filetype = 'png';
-        }
-        if(file.mimetype === 'image/jpg') {
-            filetype = 'jpg';
-        }
-        if(file.mimetype === 'image/jpeg') {
-            filetype = 'jpeg';
-        }
-        if(file.mimetype === 'application/json') {
-            filetype = 'json';
-        }
-        cb(null, 'file-' + Date.now() + '.' + filetype);
-    }
-});
+var storage = multer.memoryStorage();
 var upload = multer({storage: storage});
 router.post('/api/v1/user/update-profile', upload.single('image'), function (req, res) {
     if(req.file){
@@ -153,6 +137,32 @@ cron.schedule('* * * * *', () => {
     });
 });
 
+cron.schedule('* 12 * * *', () => {
+    console.log('cron task');
+
+    SQL = `SELECT * from fcm_tokens`;
+    helperFile.executeQuery(SQL).then(responseForTokens => {
+        if (!responseForTokens.isSuccess) {
+            console.log('cron job error');
+        } else {
+            if (responseForTokens.data.length > 0) {
+                var tokens = [];
+                responseForTokens.data.forEach(data => {
+                    tokens.push(data.token);
+                })
+                fcm.sendFcmNotification({
+                        body: "Check out today's Daily Deals!",
+                        title: "Daily Deals",
+                    }, '', tokens);
+            }
+        }
+    });
+
+}, {
+    scheduled: true,
+    timezone: "America/New_York"
+});
+
 /* Admin Routes */
 
 // User routes
@@ -177,18 +187,47 @@ router.post('/admin/user/update/profile', admin.updateUser);
 router.post('/admin/user/disable', admin.markUserDisabled);
 router.get('/admin/user/disabled/all', admin.getDisabledUsers);
 router.post('/admin/user/activate', admin.activateUser);
+
 // dispensary routes
-router.post('/admin/dispensary/add/image', upload.single('image'), function (req, res){
-    var imageName = req.file.filename;
-    admin.addImageToDispensary(req, imageName).then(response => { 
-        if (!response.isSuccess){
-            output = {status: 400, message: response.message}
-            res.json(output)
-        }else{
-            res.json({status: 200, message: "Success"});
+
+// TODO: Listing image upload should go to nested folder
+router.post('/admin/dispensary/add/image', upload.single('image'), function (req, res) {
+    const { file } = req;
+    const contentType = file.mimetype
+
+    const bucket = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION
+    })
+
+    const params = {
+        Bucket: process.env.S3_BUCKET,
+        Key: 'listings/'+ req.body.dispensaryId + '/' + file.originalname,
+        Body: file.buffer,
+        ACL: 'public-read',
+        ContentType: contentType
+    }
+
+    bucket.upload(params, function (err, data) {
+        if (err) {
+            return res.json({ status: 400, message: err.message })
         }
+
+        var imagePath = data.Location
+        admin.addImageToDispensary(req, imagePath).then(response => {
+            if (!response.isSuccess){
+                output = {status: 400, message: response.message}
+                res.json(output)
+            }else{
+                res.json({status: 200, message: "Success"});
+            }
+        })
+
+        res.json({ status: 200, message: "Success" })
     })
 });
+
 router.post('/admin/dispensary/add', admin.addDispensary);
 router.get('/admin/dispensary/all', admin.activeDispensaries);
 router.post('/admin/dispensary/disable', admin.markDispensaryDisabled);
