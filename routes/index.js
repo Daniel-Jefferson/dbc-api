@@ -75,7 +75,7 @@ router.post('/api/v1/user/update-profile', upload.single('image'), function (req
 
     const params = {
         Bucket: process.env.S3_BUCKET,
-        Key: 'profile/'+ file.originalname,
+        Key: 'profile/'+ req.body.user_id + "/" + file.originalname,
         Body: file.buffer,
         ACL: 'public-read',
         ContentType: contentType
@@ -114,7 +114,7 @@ router.post('/upload-image', upload.single('image'), function (req, res) {
 
     const params = {
         Bucket: process.env.S3_BUCKET,
-        Key: 'profile/'+ file.originalname,
+        Key: 'profile/'+ req.body.user_id + "/" + file.originalname,
         Body: file.buffer,
         ACL: 'public-read',
         ContentType: contentType
@@ -225,7 +225,7 @@ router.post('/admin/user/update/image', upload.single('image'),function (req, re
 
     const params = {
         Bucket: process.env.S3_BUCKET,
-        Key: 'profile/'+ file.originalname,
+        Key: 'profile/'+ req.body.userId + "/" + file.originalname,
         Body: file.buffer,
         ACL: 'public-read',
         ContentType: contentType
