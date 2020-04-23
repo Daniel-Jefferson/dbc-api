@@ -1,4 +1,5 @@
 var express = require('express');
+const S3 = require('aws-sdk/clients/s3');
 var router = express.Router();
 var auth = require('./auth');
 var web = require('./webPreview');
@@ -60,51 +61,71 @@ router.post('/data-entry', notification.doDataEntry);
 router.post('/api/v1/fcm/update-token', fcmToken.updateToken);
 
 var multer = require('multer');
-var storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, './public/images');
-    },
-    filename: (req, file, cb) => {
-        console.log(file);
-        var filetype = '';
-        if(file.mimetype === 'image/png') {
-            filetype = 'png';
-        }
-        if(file.mimetype === 'image/jpg') {
-            filetype = 'jpg';
-        }
-        if(file.mimetype === 'image/jpeg') {
-            filetype = 'jpeg';
-        }
-        if(file.mimetype === 'application/json') {
-            filetype = 'json';
-        }
-        cb(null, 'file-' + Date.now() + '.' + filetype);
-    }
-});
+var storage = multer.memoryStorage();
 var upload = multer({storage: storage});
 router.post('/api/v1/user/update-profile', upload.single('image'), function (req, res) {
-    if(req.file){
-        var imageName = req.file.filename;
-    }else{
-        var imageName = '';
+    const { file } = req;
+    const contentType = file.mimetype
+
+    const bucket = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION
+    })
+
+    const params = {
+        Bucket: process.env.S3_BUCKET,
+        Key: 'profile/'+ req.body.user_id + "/" + file.originalname,
+        Body: file.buffer,
+        ACL: 'public-read',
+        ContentType: contentType
     }
-    auth.updateUserProfile(req, imageName).then(response => {
-       if (!response.isSuccess){
-           output = {status: 400, isSuccess: false, message: response.message};
-           res.json(output);
-           return;
-       } else{
-           delete response.data[0]["password"];
-           output = {status: 200, isSuccess: true, message: "User Updated Successfully", user: response.data[0]};
-           res.json(output);
-       }
+    bucket.upload(params, function (err, data) {
+        if (err) {
+            return res.json({status: 400, message: err.message})
+        }
+
+        var imagePath = data.Location
+        auth.updateUserProfile(req, imagePath).then(response => {
+            if (!response.isSuccess) {
+                output = {status: 400, isSuccess: false, message: response.message};
+                res.json(output);
+                return;
+            } else {
+                delete response.data[0]["password"];
+                output = {status: 200, isSuccess: true, message: "User Updated Successfully", user: response.data[0]};
+                res.json(output);
+            }
+        });
     });
+
 });
 
 
 router.post('/upload-image', upload.single('image'), function (req, res) { 
-    res.json("success")
+    const { file } = req;
+    const contentType = file.mimetype
+
+    const bucket = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION
+    })
+
+    const params = {
+        Bucket: process.env.S3_BUCKET,
+        Key: 'profile/'+ req.body.user_id + "/" + file.originalname,
+        Body: file.buffer,
+        ACL: 'public-read',
+        ContentType: contentType
+    }
+    bucket.upload(params, function (err, data) {
+        if (err) {
+            return res.json({status: 400, message: err.message})
+        }
+        output = {status: 200, isSuccess: true, message: "User Image Successfully"};
+        return res.json(output);
+    });
 });
 
 
@@ -193,32 +214,83 @@ router.post('/admin/user/add', auth.register);
 router.get('/admin/user/all', admin.getActiveUsers);
 router.get('/admin/user/:id', admin.getUserById);
 router.post('/admin/user/update/image', upload.single('image'),function (req, res){
-    var imageName = req.file.filename;
-    admin.addImageToUser(req, imageName).then(response => { 
-        if (!response.isSuccess){
-            output = {status: 400, message: response.message}
-            res.json(output)
-        }else{
-            res.json({status: 200, message: "Success"});
-        }
+    const { file } = req;
+    const contentType = file.mimetype
+
+    const bucket = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION
     })
+
+    const params = {
+        Bucket: process.env.S3_BUCKET,
+        Key: 'profile/'+ req.body.userId + "/" + file.originalname,
+        Body: file.buffer,
+        ACL: 'public-read',
+        ContentType: contentType
+    }
+    bucket.upload(params, function (err, data) {
+        if (err) {
+            return res.json({status: 400, message: err.message})
+        }
+
+        var imagePath = data.Location;
+        admin.addImageToUser(req, imagePath).then(response => {
+            if (!response.isSuccess) {
+                output = {status: 400, message: response.message}
+                res.json(output)
+            } else {
+                res.json({status: 200, message: "Success"});
+            }
+        });
+    });
 });
 router.post('/admin/user/update/profile', admin.updateUser);
 router.post('/admin/user/disable', admin.markUserDisabled);
 router.get('/admin/user/disabled/all', admin.getDisabledUsers);
 router.post('/admin/user/activate', admin.activateUser);
+
 // dispensary routes
-router.post('/admin/dispensary/add/image', upload.single('image'), function (req, res){
-    var imageName = req.file.filename;
-    admin.addImageToDispensary(req, imageName).then(response => { 
-        if (!response.isSuccess){
-            output = {status: 400, message: response.message}
-            res.json(output)
-        }else{
-            res.json({status: 200, message: "Success"});
+
+// TODO: Listing image upload should go to nested folder
+router.post('/admin/dispensary/add/image', upload.single('image'), function (req, res) {
+    const { file } = req;
+    const contentType = file.mimetype
+
+    const bucket = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION
+    })
+
+    const params = {
+        Bucket: process.env.S3_BUCKET,
+        Key: 'listings/'+ req.body.dispensaryId + '/' + file.originalname,
+        Body: file.buffer,
+        ACL: 'public-read',
+        ContentType: contentType
+    }
+
+    bucket.upload(params, function (err, data) {
+        if (err) {
+            return res.json({ status: 400, message: err.message })
         }
+
+        var imagePath = data.Location
+        admin.addImageToDispensary(req, imagePath).then(response => {
+            if (!response.isSuccess){
+                output = {status: 400, message: response.message}
+                res.json(output)
+            }else{
+                res.json({status: 200, message: "Success"});
+            }
+        })
+
+        res.json({ status: 200, message: "Success" })
     })
 });
+
 router.post('/admin/dispensary/add', admin.addDispensary);
 router.get('/admin/dispensary/all', admin.activeDispensaries);
 router.post('/admin/dispensary/disable', admin.markDispensaryDisabled);

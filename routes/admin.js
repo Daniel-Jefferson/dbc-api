@@ -90,7 +90,7 @@ exports.getUserById = function(req, res){
     })
 }
 
-exports.updateUser = function(req, res) { 
+exports.updateUser = function(req, res) {
     auth.updateUserProfile(req).then(response => {
         if (!response.isSuccess){
             output = {status: 400, isSuccess: false, message: response.message};
@@ -506,7 +506,7 @@ exports.addImageToDispensary = function(req, imageName){
                 resolve(checkResponse);
             }else{
                 if (checkResponse.data){ 
-                    SQL = `UPDATE dispensaries SET image = '${process.env.BASE_URL}/images/${imageName}' WHERE id = ${dispensaryId}`; 
+                    SQL = `UPDATE dispensaries SET image = '${imageName}' WHERE id = ${dispensaryId}`; 
                     helperFile.executeQuery(SQL).then(response => { 
                         resolve(response)
                     })
@@ -538,7 +538,7 @@ exports.addImageToUser = function(req, imageName){
                 resolve(checkResponse);
             }else{
                 if (checkResponse.data){ 
-                    SQL = `UPDATE users SET image = '${process.env.BASE_URL}/images/${imageName}' WHERE id = ${userId}`; 
+                    SQL = `UPDATE users SET image = '${imageName}' WHERE id = ${userId}`;
                     helperFile.executeQuery(SQL).then(response => { 
                         resolve(response)
                     })
