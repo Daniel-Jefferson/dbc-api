@@ -530,7 +530,7 @@ exports.addUserDisabledDispensary = function (userID, dispensaryID, remainCount)
             if (responseForCheck.data.length > 0){
                 // SQL = `UPDATE user_disabled_dispensaries SET status = 'true', expiry = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ${process.env.DISPENSARY_DISABLE_TIME} DAY)`;
                 SQL = `UPDATE user_disabled_dispensaries SET status = 'true', remain_count = 0, 
-                       expiry = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ${process.env.DISPENSARY_DISABLE_TIME} DAY)
+                       expiry = DATE_ADD(CURRENT_DATE, INTERVAL ${process.env.DISPENSARY_DISABLE_TIME} DAY)
                        WHERE dispensary_id = ${dispensaryID} AND user_id = ${userID}`;
                 exports.executeQuery(SQL).then(responseForUpdate => {
                    if (!responseForUpdate.isSuccess){
@@ -541,7 +541,7 @@ exports.addUserDisabledDispensary = function (userID, dispensaryID, remainCount)
                 });
             }else{
                 SQL = `INSERT INTO user_disabled_dispensaries SET user_id = ${userID}, dispensary_id = ${dispensaryID}
-                ,status = 'true', remain_count = ${remainCount}, expiry = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ${process.env.DISPENSARY_DISABLE_TIME} DAY)`;
+                ,status = 'true', remain_count = ${remainCount}, expiry = DATE_ADD(CURRENT_DATE, INTERVAL ${process.env.DISPENSARY_DISABLE_TIME} DAY)`;
                 exports.executeQuery(SQL).then(responseForUpdate => { console.log(responseForUpdate)
                     if (!responseForUpdate.isSuccess){
                         resolve(responseForUpdate.message);
