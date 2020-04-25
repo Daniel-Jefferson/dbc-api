@@ -251,6 +251,29 @@ router.post('/admin/user/disable', admin.markUserDisabled);
 router.get('/admin/user/disabled/all', admin.getDisabledUsers);
 router.post('/admin/user/activate', admin.activateUser);
 
+router.post('/admin/send-notification', function (req, res) {
+    const notifyTitle = req.body.notifyTitle || '';
+    const notifyBody = req.body.notifyContent || '';
+    SQL = `SELECT * from fcm_tokens`;
+    helperFile.executeQuery(SQL).then(responseForTokens => {
+        if (!responseForTokens.isSuccess) {
+            return res.json({ status: 400, message: "Fail to send notification" })
+        } else {
+            if (responseForTokens.data.length > 0) {
+                var tokens = [];
+                responseForTokens.data.forEach(data => {
+                    tokens.push(data.token);
+                })
+                fcm.sendFcmNotification({
+                    body: notifyBody,
+                    title: notifyTitle,
+                }, '', tokens);
+                return res.json({ status: 200, message: "Success to send notification" })
+            }
+        }
+    });
+})
+
 // dispensary routes
 
 // TODO: Listing image upload should go to nested folder
