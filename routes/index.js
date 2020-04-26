@@ -178,7 +178,7 @@ cron.schedule('* * * * *', () => {
     });
 });
 
-cron.schedule('* 12 * * *', () => {
+cron.schedule('0 12 * * *', () => {
     console.log('cron task');
 
     SQL = `SELECT * from fcm_tokens`;
@@ -201,7 +201,7 @@ cron.schedule('* 12 * * *', () => {
 
 }, {
     scheduled: true,
-    timezone: "America/New_York"
+    timezone: "America/Santiago"
 });
 
 /* Admin Routes */
