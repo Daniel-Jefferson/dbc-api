@@ -291,7 +291,7 @@ exports.addDispensary = function(req, res){
                                                 }else{
                                                     if (!responseDispensaryNameValidation.data){
                                                         SQL = `INSERT INTO dispensaries SET user_id = ${user_id}, featured = '${featured}', name = '${name}', longitude = ${longitude},
-                                                        latitude = ${latitude}, phone = '${phone}', address = '${address}', deal = '${deal}', subscription_type = '${subscription_type}'`;
+                                                        latitude = ${latitude}, phone = '${phone}', address = '${address}', deal = '${deal}', subscription_type = '${subscription_type}', status = 0`;
                                                         helperFile.executeQuery(SQL).then(response => {
                                                             if (!response.isSuccess) {
                                                                 output = {status: 400, isSuccess: false, message: response.message};
