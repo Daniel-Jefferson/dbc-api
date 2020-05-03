@@ -1149,7 +1149,7 @@ exports.getDispensaryByAdminId = (req, res) => {
 exports.getAllVouchersList = (req, res) => {
     const OFFSET = req.query.page || process.env.OFF_SET; console.log(OFFSET);
     const LIMIT = req.query.size || process.env.LIMIT; console.log(LIMIT);
-    SQL = `SELECT u.first_name,u.last_name,u.email,v.status,v.created,v.expiry,d.name FROM vouchers as v 
+    SQL = `SELECT u.full_name,u.email,v.status,v.created,v.expiry,d.name FROM vouchers as v 
     JOIN users as u ON v.user_id = u.id
     JOIN dispensaries as d ON v.dispensary_id = d.id
     LIMIT ${LIMIT} OFFSET ${OFFSET}`;
