@@ -291,7 +291,7 @@ exports.addDispensary = function(req, res){
                                                 }else{
                                                     if (!responseDispensaryNameValidation.data){
                                                         SQL = `INSERT INTO dispensaries SET user_id = ${user_id}, featured = '${featured}', name = '${name}', longitude = ${longitude},
-                                                        latitude = ${latitude}, phone = '${phone}', address = '${address}', deal = '${deal}', subscription_type = '${subscription_type}'`;
+                                                        latitude = ${latitude}, phone = '${phone}', address = '${address}', deal = '${deal}', subscription_type = '${subscription_type}', status = 0`;
                                                         helperFile.executeQuery(SQL).then(response => {
                                                             if (!response.isSuccess) {
                                                                 output = {status: 400, isSuccess: false, message: response.message};
@@ -382,6 +382,7 @@ exports.updateDispensary = function(req, res){
     const dispensaryId = req.body.dispensary_id;
     const deal = req.body.deal || '';
     const subscription_type = 'free';
+    const status = req.body.status;
 
     if (!name){
         output = {status: 400, isSuccess: false, message: "Title required"};
@@ -448,7 +449,7 @@ exports.updateDispensary = function(req, res){
                         }else{
                             if (!responseDispensaryNameValidation.data){
                                 SQL = `UPDATE dispensaries SET featured = '${featured}', name = '${name}', longitude = ${longitude},
-                                latitude = ${latitude}, phone = '${phone}', address = '${address}', deal = '${deal}', subscription_type = '${subscription_type}' WHERE id = ${dispensaryId}`;
+                                latitude = ${latitude}, phone = '${phone}', address = '${address}', deal = '${deal}', status = ${status}, subscription_type = '${subscription_type}' WHERE id = ${dispensaryId}`;
                                 helperFile.executeQuery(SQL).then(response => {
                                     if (!response.isSuccess) {
                                         output = {status: 400, isSuccess: false, message: response.message};
