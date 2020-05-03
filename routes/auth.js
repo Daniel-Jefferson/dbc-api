@@ -279,7 +279,7 @@ var auth = {
                                 //     if (!resposneForInsertingToken.isSuccess){
                                 //         output = { status: 400, isSuccess: false, message: resposneForInsertingToken.message };
                                 //     } else{
-                                //         var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
+                                //         var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.first_name, u.last_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
                                 //         helperFile.executeQuery(SQL).then(responseForUserModel => {
                                 //             if (!responseForUserModel.isSuccess){
                                 //                 output = { status: 400, isSuccess: false, message: responseForUserModel.message };
@@ -308,7 +308,7 @@ var auth = {
                                                 if (!resposneForInsertingToken.isSuccess){
                                                     output = { status: 400, isSuccess: false, message: resposneForInsertingToken.message };
                                                 } else{
-                                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
+                                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.first_name, u.last_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
                                                     helperFile.executeQuery(SQL).then(responseForUserModel => {
                                                         if (!responseForUserModel.isSuccess){
                                                             output = { status: 400, isSuccess: false, message: responseForUserModel.message };
@@ -326,7 +326,7 @@ var auth = {
                                                 if (!resposneForInsertingToken.isSuccess){
                                                     output = { status: 400, isSuccess: false, message: resposneForInsertingToken.message };
                                                 } else{
-                                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
+                                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.first_name, u.last_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
                                                     helperFile.executeQuery(SQL).then(responseForUserModel => {
                                                         if (!responseForUserModel.isSuccess){
                                                             output = { status: 400, isSuccess: false, message: responseForUserModel.message };
@@ -444,7 +444,8 @@ var auth = {
         const phone = req.body.phone || '';
         const email = req.body.email || '';
         const userName = req.body.userName || '';
-        const fullName = req.body.fullName || '';
+        const firstName = req.body.firstName || '';
+        const lastName = req.body.lastName || '';
         const password = req.body.password || '';
 
         if (!phone){
@@ -477,8 +478,14 @@ var auth = {
             return;
         }
 
-        if (!fullName){
-            output = {status: 400, isSuccess: false, message: "Full Name Required" };
+        if (!firstName){
+            output = {status: 400, isSuccess: false, message: "First Name Required" };
+            res.json(output);
+            return;
+        }
+
+        if (!lastName){
+            output = {status: 400, isSuccess: false, message: "Last Name Required" };
             res.json(output);
             return;
         }
@@ -523,7 +530,8 @@ var auth = {
                                         var userObject = {
                                             "user_name"   : userName,
                                             "email"       : email,
-                                            "full_name"   : fullName,
+                                            "first_name"  : firstName,
+                                            "last_name"   : lastName,
                                             "phone"       : phone,
                                             "password"    : encryptedPassword
                                         };
@@ -654,7 +662,7 @@ var auth = {
                                     output = { status: 400, isSuccess: false, message: response.message };
                                 }
                                 else {
-                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userId}`;
+                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.first_name, u.last_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userId}`;
                                     helperFile.executeQuery(SQL).then(userData => {
                                         if (!userData.isSuccess) {
                                             output = { status: 400, isSuccess: false, message: userData.message };
@@ -1116,7 +1124,7 @@ auth.getHomeContent = function(req, res){
         return;
     }
 
-    SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
+    SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.first_name, u.last_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
     helperFile.executeQuery(SQL).then(checkUser => {
         if (!checkUser.isSuccess) {
             output = {status: 400, isSuccess: false, message: checkUser.message};
@@ -1203,7 +1211,7 @@ auth.getUserProfile = function(req, res){
       res.json(output);
       return;
   }
-  var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, u.latitude, u.longitude, u.created, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
+  var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.first_name, u.last_name, u.image, u.latitude, u.longitude, u.created, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
   // SQL = `SELECT * FROM users WHERE id = ${userID}`;
   helperFile.executeQuery(SQL).then(response => {
      if (!response.isSuccess){
@@ -1227,7 +1235,8 @@ auth.updateUserProfile = function(req, imageName){
         var userID = req.body.user_id || '';
         var userName = req.body.username || '';
         var phone = req.body.phone || '';
-        var fullName = req.body.full_name || '';
+        var firstName = req.body.first_name || '';
+        var lastName = req.body.last_name || '';
 
         if (!userID){
             output = {status:400, isSuccess: false, message: "User ID required"};
@@ -1241,8 +1250,12 @@ auth.updateUserProfile = function(req, imageName){
             output = {status:400, isSuccess: false, message: "Phone required"};
             resolve(output);
         }
-        if (!fullName){
-            output = {status:400, isSuccess: false, message: "Full Name required"};
+        if (!firstName){
+            output = {status:400, isSuccess: false, message: "First Name required"};
+            resolve(output);
+        }
+        if (!lastName){
+            output = {status:400, isSuccess: false, message: "Last Name required"};
             resolve(output);
         }
         var isValidPhone = helperFile.checkValidPhone(phone);
@@ -1261,11 +1274,11 @@ auth.updateUserProfile = function(req, imageName){
                         resolve(output);
                     }else{
                         if (imageName === '' || imageName === null || imageName === undefined){
-                            SQL = `UPDATE users SET username = '${userName}', full_name = '${fullName}',
+                            SQL = `UPDATE users SET username = '${userName}', first_name = '${firstName}', last_name = '${lastName}',
                                    phone = '${phone}' WHERE id = ${userID}` ;
                         }else{  console.log(imageName);
                             var imagePath = imageName;
-                            SQL = `UPDATE users SET username = '${userName}', full_name = '${fullName}',
+                            SQL = `UPDATE users SET username = '${userName}', first_name = '${firstName}', last_name = '${lastName}',
                                    phone = '${phone}', image = '${imagePath}' WHERE id = ${userID}` ;
                         }
                         helperFile.executeQuery(SQL).then(response => {
@@ -1273,7 +1286,7 @@ auth.updateUserProfile = function(req, imageName){
                                 output = {status: 400, isSuccess: false, message: response.message};
                                 resolve(output);
                             }else{
-                              var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, u.latitude, u.longitude, u.created, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
+                              var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.first_name, u.last_name, u.image, u.latitude, u.longitude, u.created, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
                                 // SQL = `SELECT * FROM users WHERE id = ${userID}`;
                                 helperFile.executeQuery(SQL).then(responseForUser => {
                                    if (!responseForUser.isSuccess){

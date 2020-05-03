@@ -65,42 +65,28 @@ var storage = multer.memoryStorage();
 var upload = multer({storage: storage});
 router.post('/api/v1/user/update-profile', upload.single('image'), function (req, res) {
     const { file } = req;
-    if (file !== undefined) {
-        const contentType = file.mimetype
+    const contentType = file.mimetype
 
-        const bucket = new S3({
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-            region: process.env.AWS_REGION
-        })
+    const bucket = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION
+    })
 
-        const params = {
-            Bucket: process.env.S3_BUCKET,
-            Key: 'profile/'+ req.body.user_id + "/" + file.originalname,
-            Body: file.buffer,
-            ACL: 'public-read',
-            ContentType: contentType
+    const params = {
+        Bucket: process.env.S3_BUCKET,
+        Key: 'profile/'+ req.body.user_id + "/" + file.originalname,
+        Body: file.buffer,
+        ACL: 'public-read',
+        ContentType: contentType
+    }
+    bucket.upload(params, function (err, data) {
+        if (err) {
+            return res.json({status: 400, message: err.message})
         }
-        bucket.upload(params, function (err, data) {
-            if (err) {
-                return res.json({status: 400, message: err.message})
-            }
 
-            var imagePath = data.Location
-            auth.updateUserProfile(req, imagePath).then(response => {
-                if (!response.isSuccess) {
-                    output = {status: 400, isSuccess: false, message: response.message};
-                    res.json(output);
-                    return;
-                } else {
-                    delete response.data[0]["password"];
-                    output = {status: 200, isSuccess: true, message: "User Updated Successfully", user: response.data[0]};
-                    res.json(output);
-                }
-            });
-        });
-    } else {
-        auth.updateUserProfile(req, '').then(response => {
+        var imagePath = data.Location
+        auth.updateUserProfile(req, imagePath).then(response => {
             if (!response.isSuccess) {
                 output = {status: 400, isSuccess: false, message: response.message};
                 res.json(output);
@@ -111,7 +97,7 @@ router.post('/api/v1/user/update-profile', upload.single('image'), function (req
                 res.json(output);
             }
         });
-    }
+    });
 
 });
 
