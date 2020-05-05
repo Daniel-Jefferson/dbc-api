@@ -40,7 +40,7 @@ exports.checkValidPhone = function (phone) {
 
 exports.checkPhoneExists = function (phone) {
     return new Promise((resolve)=>{
-        const SQL = `SELECT phone FROM users WHERE phone = ${phone}`;
+        const SQL = `SELECT phone FROM users WHERE phone = ${phone} and status=1`;
         exports.executeQuery(SQL).then(response =>{
             if (!response.isSuccess){
                 output = {status: 400, isSuccess: false, message: response.message };
@@ -58,7 +58,7 @@ exports.checkPhoneExists = function (phone) {
 
 exports.checkUserNameExists = function(userName) {
     return new Promise((resolve)=>{
-        const SQL = `SELECT username FROM users WHERE username = '${userName}'`;
+        const SQL = `SELECT username FROM users WHERE username = '${userName}' and status=1`;
         exports.executeQuery(SQL).then(response =>{
             if (!response.isSuccess){
                 output = {status: 400, isSuccess: false, message: response.message };
@@ -76,7 +76,7 @@ exports.checkUserNameExists = function(userName) {
 
 exports.checkEmailExists = function (email) {
   return new Promise((resolve) => {
-    var SQL = `SELECT email FROM users WHERE email = '${email}'`;
+    var SQL = `SELECT email FROM users WHERE email = '${email}' and status=1`;
     exports.executeQuery(SQL).then(response=>{
        if (!response.isSuccess){
            output = {status: 400, isSuccess: false, message: response.message };

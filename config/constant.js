@@ -25,6 +25,7 @@ module.exports = {
     POST_UPDATED_SUCCESS :"Post updated successfully",
     COMMENT_ADDED_SUCCESS : "Comment added successfully",
     EMAIL_SENT_SUCCESS : "Email sent successfully",
+    PHONE_SENT_SUCCESS : "Link sent successfully to your phone number",
     POST_SHARED_SUCCESS:"Post shared successfully",
     ADDED_POST_IN_PLAYLIST_SUCCESS : "Post has been added successfully in playlist",
     REMOVED_POST_FROM_PLAYLIST_SUCCESS : "Post has been removed successfully from playlist",
@@ -51,6 +52,8 @@ module.exports = {
     NOT_UPDATE_ANOTHER_POST:"You can not update another user post",
     EMAIL_NOT_VALID : "Invalid email",
     EMAIL_NOT_FOUND : "Email not exist",
+    PHONE_NOT_VALID : "Invalid phone",
+    PHONE_NOT_FOUND : "Phone not exist",
     PASSWORD_VALIDATION:"Password must contain atleast 8 characters, including UPPER,lower case, number and symbol",
 
     // Required field message

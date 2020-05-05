@@ -6,7 +6,9 @@ var randomstring = require("randomstring");
 var helperFile = require('../helpers/helperFunctions.js');
 var passwordValidator = require('password-validator');
 const emailUtil = require('../email/email-util');
+const smsUtil = require('../sms/twilio-utils');
 const { sendEmail } = emailUtil;
+const { sendSMS } = smsUtil;
 var dispensaries = require('./dispansaries');
 var voucher = require('./voucher');
 
@@ -535,7 +537,7 @@ var auth = {
                                                 res.json(output);
                                                 return;
                                             }else{
-                                                sendVerificationCodeToEmail(email, "verification", response.user.id).then(verificationResponse => {
+                                                sendVerificationCodeToEmail(phone, "verification", response.user.id).then(verificationResponse => {
                                                     res.json(response);
                                                 }).catch(err => {
                                                     return res.json(err);
@@ -552,24 +554,24 @@ var auth = {
         });
     },
     verifyUser: function (req, res) {
-        var verificationValue = req.body.email || '';
+        var verificationValue = req.body.phone || '';
 
         if (!verificationValue) {
-            output = { status: 400, isSuccess: false, message: "Email Required" };
+            output = { status: 400, isSuccess: false, message: "Phone Required" };
             res.json(output);
             return;
         }
 
         var Query = "";
-        var isEmail = false;
+        var isPhone = false;
         if (isNaN(verificationValue)) {
-            isEmail = helperFile.checkIfEmailInString(verificationValue);
-            if (!isEmail) {
-                output = { status: 400, isSuccess: false, message: CNST.EMAIL_NOT_VALID };
+            isPhone = helperFile.checkValidPhone(verificationValue);
+            if (!isPhone) {
+                output = { status: 400, isSuccess: false, message: CNST.PHONE_NOT_VALID };
                 res.json(output);
                 return;
             }
-            Query = "SELECT id FROM `users` WHERE email = '" + verificationValue + "'";
+            Query = "SELECT id FROM `users` WHERE phone = '" + verificationValue + "'";
         }
 
         auth.loginUserId(req, res).then(response => {
@@ -648,7 +650,7 @@ var auth = {
                 else {
                     if (response.data.length > 0) {
                         if (response.data[0].code === verificationCode) {
-                            var sql = `UPDATE users SET email_verified_at = CURRENT_TIMESTAMP, longitude = ${longitude}, latitude = ${latitude} WHERE id = ${userId}`;
+                            var sql = `UPDATE users SET email_verified_at = CURRENT_TIMESTAMP, status = 1, longitude = ${longitude}, latitude = ${latitude} WHERE id = ${userId}`;
                             helperFile.executeQuery(sql).then(response => {
                                 if (!response.isSuccess) {
                                     output = { status: 400, isSuccess: false, message: response.message };
@@ -771,7 +773,7 @@ var auth = {
     },
     //Forgot password
     forgotPassword: function (req, res) {
-        var verificationValue = req.body.email || '';
+        var verificationValue = req.body.phone || '';
         if (!verificationValue) {
             output = { status: 400, isSuccess: false, message: CNST.VERIFICATION_VALUE_REQ };
             res.json(output);
@@ -779,16 +781,14 @@ var auth = {
         }
 
         var Query = "";
-        var isEmail = false;
-        if (isNaN(verificationValue)) {
-            isEmail = helperFile.checkIfEmailInString(verificationValue);
-            if (!isEmail) {
-                output = { status: 400, isSuccess: false, message: CNST.EMAIL_NOT_VALID };
-                res.json(output);
-                return;
-            }
-            Query = "SELECT id FROM `users` WHERE email = '" + verificationValue + "'";
+        var isPhone = false;
+        isPhone = helperFile.checkValidPhone(verificationValue);
+        if (!isPhone) {
+            output = { status: 400, isSuccess: false, message: CNST.PHONE_NOT_VALID };
+            res.json(output);
+            return;
         }
+        Query = "SELECT id FROM `users` WHERE phone = '" + verificationValue + "'";
 
         helperFile.executeQuery(Query).then(response => {
             if (!response.isSuccess) {
@@ -1037,7 +1037,7 @@ function sendVerificationCodeToBusinessEmail(email, requestType, userID) {
     })
 }
 
-function sendVerificationCodeToEmail(email, requestType, userID) {
+function sendVerificationCodeToEmail(phoneNumber, requestType, userID) {
     return new Promise((resolve, reject) => {
         var randomCode = "";
         // randomCode = "GH-" + randomstring.generate({ length: 3, charset: 'numeric' }) + "-" + randomstring.generate({ length: 3, charset: 'numeric' });
@@ -1062,7 +1062,7 @@ function sendVerificationCodeToEmail(email, requestType, userID) {
                            var encryptedCode = cryptr.encrypt(randomCode);
                            link = `${process.env.BASE_URL}/forgetPassword/${encryptedCode}`;
                            // console.log(link);
-                           sendEmail(email, randomCode, requestType, link).then(response => {
+                           sendSMS(phoneNumber, randomCode, requestType, link).then(response => {
                                resolve(response);
                            }).catch(error => {
                                reject(error);
@@ -1077,11 +1077,19 @@ function sendVerificationCodeToEmail(email, requestType, userID) {
                            reject(output);
                            return;
                        }
-                       sendEmail(email, randomCode, requestType, link).then(response => {
-                           resolve(response);
-                       }).catch(error => {
-                           reject(error);
-                       });
+                       // sendEmail(email, randomCode, requestType, link).then(response => {
+                       //     resolve(response);
+                       // }).catch(error => {
+                       //     reject(error);
+                       // });
+
+                       sendSMS(phoneNumber, randomCode, requestType, link)
+                           .then(message => {
+                               resolve(message);
+                           })
+                           .catch(error => {
+                               reject(error);
+                           });
                    });
                }
            }
