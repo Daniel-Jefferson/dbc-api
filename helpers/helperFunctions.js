@@ -94,40 +94,43 @@ exports.checkEmailExists = function (email) {
 
 exports.addUser = function (user) {
   return new Promise((resolve)=>{
-    var SQL = `INSERT INTO users SET username = '${user.user_name}', email = '${user.email}', full_name = '${user.full_name}', phone = '${user.phone}', password = '${user.password}'`;
-    exports.executeQuery(SQL).then(response => {
-       if (!response.isSuccess){
-           output = {status: 400, isSuccess: false, message: response.message };
-       }else{
-           var lastInsertId = response.data.insertId;
-           var token = jwt.encode({
-               userId: lastInsertId
-           }, process.env.TOKEN_SECRET);
-           let addAuthTokenSql = `INSERT INTO user_token SET token = '${token}', user_id = ${lastInsertId}`;
-           exports.executeQuery(addAuthTokenSql).then(responseForToken => {
-              if (!responseForToken.isSuccess){
-                  output = {status: 400, isSuccess: false, message: responseForToken.message };
-              } else{
-                  var SQL = `INSERT INTO coins SET user_id = ${lastInsertId}, coins = 0`;
-                  exports.executeQuery(SQL).then(responseForCoins => {
-                     if (!responseForCoins.isSuccess){
-                         output = {status: 400, isSuccess: false, message: responseForCoins.message };
-                     } else{
-                         var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.phone_verified, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${lastInsertId}`;
-                         exports.executeQuery(SQL).then(responseForUserModel => {
-                             if (!responseForUserModel.isSuccess){
-                                 output = {status: 400, isSuccess: false, message: responseForUserModel.message };
-                             }
+      var SQL = `DELETE FROM users WHERE phone = '${user.phone}' and phone_verified = 0;`
+      exports.executeQuery(SQL).then(responseForDelete => {
+          var SQL = `INSERT INTO users SET username = '${user.user_name}', email = '${user.email}', full_name = '${user.full_name}', phone = '${user.phone}', password = '${user.password}'`;
+          exports.executeQuery(SQL).then(response => {
+              if (!response.isSuccess){
+                  output = {status: 400, isSuccess: false, message: response.message };
+              }else{
+                  var lastInsertId = response.data.insertId;
+                  var token = jwt.encode({
+                      userId: lastInsertId
+                  }, process.env.TOKEN_SECRET);
+                  let addAuthTokenSql = `INSERT INTO user_token SET token = '${token}', user_id = ${lastInsertId}`;
+                  exports.executeQuery(addAuthTokenSql).then(responseForToken => {
+                      if (!responseForToken.isSuccess){
+                          output = {status: 400, isSuccess: false, message: responseForToken.message };
+                      } else{
+                          var SQL = `INSERT INTO coins SET user_id = ${lastInsertId}, coins = 0`;
+                          exports.executeQuery(SQL).then(responseForCoins => {
+                              if (!responseForCoins.isSuccess){
+                                  output = {status: 400, isSuccess: false, message: responseForCoins.message };
+                              } else{
+                                  var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.phone_verified, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${lastInsertId}`;
+                                  exports.executeQuery(SQL).then(responseForUserModel => {
+                                      if (!responseForUserModel.isSuccess){
+                                          output = {status: 400, isSuccess: false, message: responseForUserModel.message };
+                                      }
 
-                             output = {status: 200, isSuccess: true, message: "User Registered Successfully", user: responseForUserModel.data[0]  };
-                             resolve(output);
-                         });
-                     }
+                                      output = {status: 200, isSuccess: true, message: "User Registered Successfully", user: responseForUserModel.data[0]  };
+                                      resolve(output);
+                                  });
+                              }
+                          });
+                      }
                   });
               }
-           });
-       }
-    });
+          });
+      })
   });
 };
 
