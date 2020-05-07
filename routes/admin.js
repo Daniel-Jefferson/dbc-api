@@ -45,7 +45,7 @@ exports.login = function(req, res) {
 exports.getActiveUsers = function(req, res){
     const OFFSET = req.query.page || process.env.OFF_SET;
     const LIMIT = req.query.size || process.env.LIMIT;
-    var SQL = `SELECT id, status, username, email, full_name, phone, email_verified_at, image, created FROM users WHERE status = 1 ORDER BY id DESC LIMIT ${LIMIT} OFFSET ${OFFSET}`;
+    var SQL = `SELECT id, status, username, email, full_name, phone, phone_verified, image, created FROM users WHERE status = 1 ORDER BY id DESC LIMIT ${LIMIT} OFFSET ${OFFSET}`;
     helperFile.executeQuery(SQL).then(response => {
         if (!response.isSuccess){
             output = {status: 400, isSuccess: false, message: response.message};

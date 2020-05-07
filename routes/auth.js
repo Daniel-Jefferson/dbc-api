@@ -6,7 +6,9 @@ var randomstring = require("randomstring");
 var helperFile = require('../helpers/helperFunctions.js');
 var passwordValidator = require('password-validator');
 const emailUtil = require('../email/email-util');
+const smsUtil = require('../sms/twilio-utils');
 const { sendEmail } = emailUtil;
+const { sendSMS } = smsUtil;
 var dispensaries = require('./dispansaries');
 var voucher = require('./voucher');
 
@@ -88,11 +90,7 @@ var auth = {
                 return;
             }
             if (response.isSuccess) {
-                if (isNaN(loginValue)){
-                    var SQL = `UPDATE users SET longitude = ${longitude}, latitude = ${latitude} WHERE email = '${loginValue}'`;
-                }else{
-                    var SQL = `UPDATE users SET longitude = ${longitude}, latitude = ${latitude} WHERE phone = '${loginValue}'`;
-                }
+                var SQL = `UPDATE users SET longitude = ${longitude}, latitude = ${latitude} WHERE phone = '${loginValue}'`;
                 helperFile.executeQuery(SQL).then(responseForLocation => {
                    if (!responseForLocation.isSuccess){
                        res.json({
@@ -103,7 +101,7 @@ var auth = {
                        return;
                    }
                 });
-                
+
                 // For adding data of devices for FCM
                 if (device_id !== null && device_id !== '' &&
                     device_name !== null && device_name !== '' &&
@@ -152,7 +150,7 @@ var auth = {
                 }
 
                 // End For adding data of devices for FCM
-                
+
                 dispensaries.getAvailableDispensaries(response.user.id, longitude, latitude, limit, offset, currentPage, pageSize, showAll).then(responseForDispensaries=>{
                    if (!responseForDispensaries.isSuccess){
                        output = {status: 400, isSuccess: false, message: responseForDispensaries.message};
@@ -252,11 +250,7 @@ var auth = {
 
     validateLogin: function (loginValue, password) {
         return new Promise((resolve, reject) => {
-            if (isNaN(loginValue)){
-                var sql = "SELECT * FROM `users` WHERE email = '" + loginValue + "' ";
-            }else{
-                var sql = "SELECT * FROM `users` WHERE phone = '" + loginValue + "' ";
-            }
+            var sql = "SELECT * FROM `users` WHERE phone = '" + loginValue + "' ";
             helperFile.executeQuery(sql).then(response => {
                 if (!response.isSuccess) {
                     output = { status: 400, isSuccess: false, message: response.message };
@@ -266,10 +260,10 @@ var auth = {
                     if (response.data.length > 0) {
                         var dbPassword = cryptr.decrypt(response.data[0].password);
                         if (password === dbPassword) {
-                            // if (response.data[0].email_verified_at === null){
-                                // output = { status: 400, isSuccess: false, message: "User not verified" };
-                                // return resolve(output);
-                            // }else{
+                            if (response.data[0].phone_verified === 0){
+                                output = { status: 400, isSuccess: false, message: "User not verified" };
+                                return resolve(output);
+                            }else{
                                 var loggedInUserID = response.data[0].id;
                                 var token = jwt.encode({
                                     userId: loggedInUserID
@@ -308,7 +302,7 @@ var auth = {
                                                 if (!resposneForInsertingToken.isSuccess){
                                                     output = { status: 400, isSuccess: false, message: resposneForInsertingToken.message };
                                                 } else{
-                                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
+                                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.phone_verified, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
                                                     helperFile.executeQuery(SQL).then(responseForUserModel => {
                                                         if (!responseForUserModel.isSuccess){
                                                             output = { status: 400, isSuccess: false, message: responseForUserModel.message };
@@ -326,7 +320,7 @@ var auth = {
                                                 if (!resposneForInsertingToken.isSuccess){
                                                     output = { status: 400, isSuccess: false, message: resposneForInsertingToken.message };
                                                 } else{
-                                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
+                                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.phone_verified, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${loggedInUserID}`;
                                                     helperFile.executeQuery(SQL).then(responseForUserModel => {
                                                         if (!responseForUserModel.isSuccess){
                                                             output = { status: 400, isSuccess: false, message: responseForUserModel.message };
@@ -342,7 +336,7 @@ var auth = {
                                     }
                                 });
                                 // End Implementation for logout
-                            // }
+                            }
                         }
                         else{
                             output = { status: 400, isSuccess: false, message: CNST.WRONG_PASSWORD };
@@ -439,8 +433,8 @@ var auth = {
                 res.json(responseReqCheck);
                 return;
             }
-        }); 
-        
+        });
+
         const phone = req.body.phone || '';
         const email = req.body.email || '';
         const userName = req.body.userName || '';
@@ -455,18 +449,6 @@ var auth = {
         var isValidPhone = helperFile.checkValidPhone(phone);
         if (!isValidPhone){
             output = {status: 400, isSuccess: false, message: "Please enter a valid phone number" };
-            res.json(output);
-            return;
-        }
-
-        if (!email){
-            output = {status: 400, isSuccess: false, message: "Email Required" };
-            res.json(output);
-            return;
-        }
-        var isEmailValid = helperFile.checkIfEmailInString(email);
-        if (!isEmailValid){
-            output = {status: 400, isSuccess: false, message: "Please enter a valid email address" };
             res.json(output);
             return;
         }
@@ -500,76 +482,60 @@ var auth = {
                 output = { status: 400, isSuccess: false, message: "Phone number already exists" };
                 res.json(output);
             }else{
-                helperFile.checkEmailExists(email).then(responseForEmailCheck =>{
-                    if (responseForEmailCheck.isEmailExists === true){
-                        output = { status: 400, isSuccess: false, message: "Email already exists" };
+                helperFile.checkUserNameExists(userName).then(responseForUserNameCheck => {
+                    if (responseForUserNameCheck.isUserNameExists === true){
+                        output = { status: 400, isSuccess: false, message: "Username already exists" };
                         res.json(output);
                         return;
                     }else{
+                        var encryptedPassword = cryptr.encrypt(password);
+                        var userObject = {
+                            "user_name"   : userName,
+                            "email"       : email,
+                            "full_name"   : fullName,
+                            "phone"       : phone,
+                            "password"    : encryptedPassword,
+                            "status"      : false
+                        };
 
-                        helperFile.checkBusinessEmail(email).then( emailCheck => {
-                            if (!emailCheck){
-                                output = { status: 400, isSuccess: false, message: "Email already exists" };
+
+                        helperFile.addUser(userObject).then(response => {
+                            if (!response.isSuccess){
+                                output = { status: 400, isSuccess: false, message: response.message };
                                 res.json(output);
                                 return;
                             }else{
-                                helperFile.checkUserNameExists(userName).then(responseForUserNameCheck => {
-                                    if (responseForUserNameCheck.isUserNameExists === true){
-                                        output = { status: 400, isSuccess: false, message: "Username already exists" };
-                                        res.json(output);
-                                        return;
-                                    }else{
-                                        var encryptedPassword = cryptr.encrypt(password);
-                                        var userObject = {
-                                            "user_name"   : userName,
-                                            "email"       : email,
-                                            "full_name"   : fullName,
-                                            "phone"       : phone,
-                                            "password"    : encryptedPassword
-                                        };
-
-
-                                        helperFile.addUser(userObject).then(response => {
-                                            if (!response.isSuccess){
-                                                output = { status: 400, isSuccess: false, message: response.message };
-                                                res.json(output);
-                                                return;
-                                            }else{
-                                                sendVerificationCodeToEmail(email, "verification", response.user.id).then(verificationResponse => {
-                                                    res.json(response);
-                                                }).catch(err => {
-                                                    return res.json(err);
-                                                })
-                                            }
-                                        });
-                                    }
-                                });
+                                sendVerificationCodeToEmail(phone, "verification", response.user.id).then(verificationResponse => {
+                                    res.json(response);
+                                }).catch(err => {
+                                    return res.json(err);
+                                })
                             }
-                        })
+                        });
                     }
                 });
             }
         });
     },
     verifyUser: function (req, res) {
-        var verificationValue = req.body.email || '';
+        var verificationValue = req.body.phone || '';
 
         if (!verificationValue) {
-            output = { status: 400, isSuccess: false, message: "Email Required" };
+            output = { status: 400, isSuccess: false, message: "Phone Required" };
             res.json(output);
             return;
         }
 
         var Query = "";
-        var isEmail = false;
+        var isPhone = false;
         if (isNaN(verificationValue)) {
-            isEmail = helperFile.checkIfEmailInString(verificationValue);
-            if (!isEmail) {
-                output = { status: 400, isSuccess: false, message: CNST.EMAIL_NOT_VALID };
+            isPhone = helperFile.checkValidPhone(verificationValue);
+            if (!isPhone) {
+                output = { status: 400, isSuccess: false, message: CNST.PHONE_NOT_VALID };
                 res.json(output);
                 return;
             }
-            Query = "SELECT id FROM `users` WHERE email = '" + verificationValue + "'";
+            Query = "SELECT id FROM `users` WHERE phone = '" + verificationValue + "'";
         }
 
         auth.loginUserId(req, res).then(response => {
@@ -648,13 +614,13 @@ var auth = {
                 else {
                     if (response.data.length > 0) {
                         if (response.data[0].code === verificationCode) {
-                            var sql = `UPDATE users SET email_verified_at = CURRENT_TIMESTAMP, longitude = ${longitude}, latitude = ${latitude} WHERE id = ${userId}`;
+                            var sql = `UPDATE users SET phone_verified = 1, status = 1, longitude = ${longitude}, latitude = ${latitude} WHERE id = ${userId}`;
                             helperFile.executeQuery(sql).then(response => {
                                 if (!response.isSuccess) {
                                     output = { status: 400, isSuccess: false, message: response.message };
                                 }
                                 else {
-                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userId}`;
+                                    var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.phone_verified, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userId}`;
                                     helperFile.executeQuery(SQL).then(userData => {
                                         if (!userData.isSuccess) {
                                             output = { status: 400, isSuccess: false, message: userData.message };
@@ -771,7 +737,7 @@ var auth = {
     },
     //Forgot password
     forgotPassword: function (req, res) {
-        var verificationValue = req.body.email || '';
+        var verificationValue = req.body.phone || '';
         if (!verificationValue) {
             output = { status: 400, isSuccess: false, message: CNST.VERIFICATION_VALUE_REQ };
             res.json(output);
@@ -779,16 +745,14 @@ var auth = {
         }
 
         var Query = "";
-        var isEmail = false;
-        if (isNaN(verificationValue)) {
-            isEmail = helperFile.checkIfEmailInString(verificationValue);
-            if (!isEmail) {
-                output = { status: 400, isSuccess: false, message: CNST.EMAIL_NOT_VALID };
-                res.json(output);
-                return;
-            }
-            Query = "SELECT id FROM `users` WHERE email = '" + verificationValue + "'";
+        var isPhone = false;
+        isPhone = helperFile.checkValidPhone(verificationValue);
+        if (!isPhone) {
+            output = { status: 400, isSuccess: false, message: CNST.PHONE_NOT_VALID };
+            res.json(output);
+            return;
         }
+        Query = "SELECT id FROM `users` WHERE phone = '" + verificationValue + "'";
 
         helperFile.executeQuery(Query).then(response => {
             if (!response.isSuccess) {
@@ -924,14 +888,14 @@ var auth = {
         helperFile.executeQuery(SQL).then(tokenCheckResponse => {
             if (!tokenCheckResponse.isSuccess){
                 output = { status: 400, isSuccess: false, message: tokenCheckResponse.message };
-                return res.json(output); 
-            }else{ 
+                return res.json(output);
+            }else{
                 if (tokenCheckResponse.data.length > 0){
-                    var SQL = `SELECT * FROM devices WHERE device_id = '${device_id}'`; 
-                    helperFile.executeQuery(SQL).then(responseForDeviceCheck => { 
+                    var SQL = `SELECT * FROM devices WHERE device_id = '${device_id}'`;
+                    helperFile.executeQuery(SQL).then(responseForDeviceCheck => {
                         if (!responseForDeviceCheck.isSuccess){
                             output = { status: 400, isSuccess: false, message: responseForDeviceCheck.message };
-                            return res.json(output); 
+                            return res.json(output);
                         }else{
                             if (responseForDeviceCheck.data.length > 0){
                                 var SQL = `DELETE FROM user_token WHERE token = '${token}'`;
@@ -1037,7 +1001,7 @@ function sendVerificationCodeToBusinessEmail(email, requestType, userID) {
     })
 }
 
-function sendVerificationCodeToEmail(email, requestType, userID) {
+function sendVerificationCodeToEmail(phoneNumber, requestType, userID) {
     return new Promise((resolve, reject) => {
         var randomCode = "";
         // randomCode = "GH-" + randomstring.generate({ length: 3, charset: 'numeric' }) + "-" + randomstring.generate({ length: 3, charset: 'numeric' });
@@ -1062,7 +1026,7 @@ function sendVerificationCodeToEmail(email, requestType, userID) {
                            var encryptedCode = cryptr.encrypt(randomCode);
                            link = `${process.env.BASE_URL}/forgetPassword/${encryptedCode}`;
                            // console.log(link);
-                           sendEmail(email, randomCode, requestType, link).then(response => {
+                           sendSMS(phoneNumber, randomCode, requestType, link).then(response => {
                                resolve(response);
                            }).catch(error => {
                                reject(error);
@@ -1077,11 +1041,19 @@ function sendVerificationCodeToEmail(email, requestType, userID) {
                            reject(output);
                            return;
                        }
-                       sendEmail(email, randomCode, requestType, link).then(response => {
-                           resolve(response);
-                       }).catch(error => {
-                           reject(error);
-                       });
+                       // sendEmail(email, randomCode, requestType, link).then(response => {
+                       //     resolve(response);
+                       // }).catch(error => {
+                       //     reject(error);
+                       // });
+
+                       sendSMS(phoneNumber, randomCode, requestType, link)
+                           .then(message => {
+                               resolve(message);
+                           })
+                           .catch(error => {
+                               reject(error);
+                           });
                    });
                }
            }
@@ -1116,7 +1088,7 @@ auth.getHomeContent = function(req, res){
         return;
     }
 
-    SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
+    SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.phone_verified, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
     helperFile.executeQuery(SQL).then(checkUser => {
         if (!checkUser.isSuccess) {
             output = {status: 400, isSuccess: false, message: checkUser.message};
@@ -1165,7 +1137,7 @@ auth.getHomeContent = function(req, res){
                                                responseForDispensaries["featured_dispensaries"] = responseForCHeck;
                                            });
                                     }
-                                    
+
                                 }
                                 voucher.getVoucherContent(userID, 'available',limit, offset, currentPage, pageSize).then(responseForAvailableVoucher => {
                                     if (!responseForAvailableVoucher.isSuccess){
@@ -1203,7 +1175,7 @@ auth.getUserProfile = function(req, res){
       res.json(output);
       return;
   }
-  var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, u.latitude, u.longitude, u.created, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
+  var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.phone_verified, u.username, u.full_name, u.image, u.latitude, u.longitude, u.created, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
   // SQL = `SELECT * FROM users WHERE id = ${userID}`;
   helperFile.executeQuery(SQL).then(response => {
      if (!response.isSuccess){
@@ -1273,7 +1245,7 @@ auth.updateUserProfile = function(req, imageName){
                                 output = {status: 400, isSuccess: false, message: response.message};
                                 resolve(output);
                             }else{
-                              var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, u.latitude, u.longitude, u.created, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
+                              var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.phone_verified, u.username, u.full_name, u.image, u.latitude, u.longitude, u.created, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${userID}`;
                                 // SQL = `SELECT * FROM users WHERE id = ${userID}`;
                                 helperFile.executeQuery(SQL).then(responseForUser => {
                                    if (!responseForUser.isSuccess){
