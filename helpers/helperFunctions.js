@@ -40,7 +40,7 @@ exports.checkValidPhone = function (phone) {
 
 exports.checkPhoneExists = function (phone) {
     return new Promise((resolve)=>{
-        const SQL = `SELECT phone FROM users WHERE phone = ${phone} and phone_verified = 1`;
+        const SQL = `SELECT phone FROM users WHERE phone = ${phone}`;
         exports.executeQuery(SQL).then(response =>{
             if (!response.isSuccess){
                 output = {status: 400, isSuccess: false, message: response.message };
@@ -58,7 +58,7 @@ exports.checkPhoneExists = function (phone) {
 
 exports.checkUserNameExists = function(userName) {
     return new Promise((resolve)=>{
-        const SQL = `SELECT username FROM users WHERE username = '${userName}' and phone_verified = 1`;
+        const SQL = `SELECT username FROM users WHERE username = '${userName}'`;
         exports.executeQuery(SQL).then(response =>{
             if (!response.isSuccess){
                 output = {status: 400, isSuccess: false, message: response.message };
@@ -76,7 +76,7 @@ exports.checkUserNameExists = function(userName) {
 
 exports.checkEmailExists = function (email) {
   return new Promise((resolve) => {
-    var SQL = `SELECT email FROM users WHERE email = '${email}' and phone_verified = 1`;
+    var SQL = `SELECT email FROM users WHERE email = '${email}'`;
     exports.executeQuery(SQL).then(response=>{
        if (!response.isSuccess){
            output = {status: 400, isSuccess: false, message: response.message };
@@ -94,43 +94,40 @@ exports.checkEmailExists = function (email) {
 
 exports.addUser = function (user) {
   return new Promise((resolve)=>{
-      var SQL = `DELETE FROM users WHERE phone = '${user.phone}' and phone_verified = 0;`
-      exports.executeQuery(SQL).then(responseForDelete => {
-          var SQL = `INSERT INTO users SET username = '${user.user_name}', email = '${user.email}', full_name = '${user.full_name}', phone = '${user.phone}', password = '${user.password}'`;
-          exports.executeQuery(SQL).then(response => {
-              if (!response.isSuccess){
-                  output = {status: 400, isSuccess: false, message: response.message };
-              }else{
-                  var lastInsertId = response.data.insertId;
-                  var token = jwt.encode({
-                      userId: lastInsertId
-                  }, process.env.TOKEN_SECRET);
-                  let addAuthTokenSql = `INSERT INTO user_token SET token = '${token}', user_id = ${lastInsertId}`;
-                  exports.executeQuery(addAuthTokenSql).then(responseForToken => {
-                      if (!responseForToken.isSuccess){
-                          output = {status: 400, isSuccess: false, message: responseForToken.message };
-                      } else{
-                          var SQL = `INSERT INTO coins SET user_id = ${lastInsertId}, coins = 0`;
-                          exports.executeQuery(SQL).then(responseForCoins => {
-                              if (!responseForCoins.isSuccess){
-                                  output = {status: 400, isSuccess: false, message: responseForCoins.message };
-                              } else{
-                                  var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.phone_verified, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${lastInsertId}`;
-                                  exports.executeQuery(SQL).then(responseForUserModel => {
-                                      if (!responseForUserModel.isSuccess){
-                                          output = {status: 400, isSuccess: false, message: responseForUserModel.message };
-                                      }
+    var SQL = `INSERT INTO users SET username = '${user.user_name}', email = '${user.email}', full_name = '${user.full_name}', phone = '${user.phone}', password = '${user.password}'`;
+    exports.executeQuery(SQL).then(response => {
+       if (!response.isSuccess){
+           output = {status: 400, isSuccess: false, message: response.message };
+       }else{
+           var lastInsertId = response.data.insertId;
+           var token = jwt.encode({
+               userId: lastInsertId
+           }, process.env.TOKEN_SECRET);
+           let addAuthTokenSql = `INSERT INTO user_token SET token = '${token}', user_id = ${lastInsertId}`;
+           exports.executeQuery(addAuthTokenSql).then(responseForToken => {
+              if (!responseForToken.isSuccess){
+                  output = {status: 400, isSuccess: false, message: responseForToken.message };
+              } else{
+                  var SQL = `INSERT INTO coins SET user_id = ${lastInsertId}, coins = 0`;
+                  exports.executeQuery(SQL).then(responseForCoins => {
+                     if (!responseForCoins.isSuccess){
+                         output = {status: 400, isSuccess: false, message: responseForCoins.message };
+                     } else{
+                         var SQL = `SELECT t.token as session_token, u.id, u.email, u.phone, u.email_verified_at, u.username, u.full_name, u.image, c.coins as coins_earned FROM users as u INNER JOIN user_token as t ON u.id = t.user_id INNER JOIN coins as c ON c.user_id = u.id WHERE u.id = ${lastInsertId}`;
+                         exports.executeQuery(SQL).then(responseForUserModel => {
+                             if (!responseForUserModel.isSuccess){
+                                 output = {status: 400, isSuccess: false, message: responseForUserModel.message };
+                             }
 
-                                      output = {status: 200, isSuccess: true, message: "User Registered Successfully", user: responseForUserModel.data[0]  };
-                                      resolve(output);
-                                  });
-                              }
-                          });
-                      }
+                             output = {status: 200, isSuccess: true, message: "User Registered Successfully", user: responseForUserModel.data[0]  };
+                             resolve(output);
+                         });
+                     }
                   });
               }
-          });
-      })
+           });
+       }
+    });
   });
 };
 
@@ -889,6 +886,9 @@ exports.checkBusinessEmail = (email) => {
 }
 
 exports.updateFCMToken = function(userID, token, deviceID) {
+    console.log(userID);
+    console.log(token);
+    console.log(deviceID);
     return new Promise((resolve)=>{
         SQL = `SELECT * FROM fcm_tokens WHERE user_id = '${userID}' AND device_id = ${deviceID}`;
         exports.executeQuery(SQL).then(response =>{
@@ -898,7 +898,7 @@ exports.updateFCMToken = function(userID, token, deviceID) {
                 if (response.data.length > 0){
                     SQL = `UPDATE fcm_tokens SET token = '${token}' WHERE user_id = '${userID}' AND device_id = ${deviceID}`;
                     exports.executeQuery(SQL).then(responseForUpdate => {
-                        if (!responseForUpdate.isSuccess){
+                        if (!responseForCheck.isSuccess){
                             output = { status:400, isSuccess:false, message: responseForUpdate.message };
                             resolve(output);
                         }else{
