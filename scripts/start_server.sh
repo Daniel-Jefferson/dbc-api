@@ -3,4 +3,5 @@ touch ~/.bash_profile
 nvm install node
 npm install pm2 -g
 cd /app/backend/back/
-pm2 restart backend
+pm2 delete backend 
+pm2 start --name backend index.js
