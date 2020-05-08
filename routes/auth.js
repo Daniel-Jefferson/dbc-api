@@ -13,6 +13,7 @@ var dispensaries = require('./dispansaries');
 var voucher = require('./voucher');
 
 // Create a schema
+
 var schema = new passwordValidator();
 
 // Add properties to it
