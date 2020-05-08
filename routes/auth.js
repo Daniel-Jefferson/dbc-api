@@ -180,7 +180,7 @@ var auth = {
                                     res.json(output);
                                 }else{
                                     if(responseForFeaturedDispensaries.data.length > 0){
-                                           helperFile.checkFDispensaries(responseForFeaturedDispensaries.data, response.user.id).then(responseForCHeck => {
+                                           helperFile.checkFollowedDispensaries(responseForFeaturedDispensaries.data, response.user.id).then(responseForCHeck => {
                                                output = {status: 200, isSuccess: true, message: "Success", dispensaries: responseForCHeck};
                                                response["featured_dispensaries"] = responseForCHeck;
                                            });
