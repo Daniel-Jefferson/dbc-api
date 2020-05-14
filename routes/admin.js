@@ -9,6 +9,8 @@ var Cryptr = require('cryptr');
 cryptr = new Cryptr(process.env.PASS_SECRET);
 
 exports.login = function(req, res) {
+    console.log("encrypt login");
+    console.log(cryptr.encrypt('Delta22!'));
     var email = req.body.email || '';
     var password = req.body.password || '';
 
@@ -555,9 +557,8 @@ exports.activeDispensaries = function (req, res){
     const OFFSET = req.query.page || process.env.OFF_SET; 
     const LIMIT = req.query.size || process.env.LIMIT; 
     const userID = req.query.userID;
-    console.log(req.query.userID);
-    console.log(req.query.userID);
-    if(userID === 1 || userID === '1'){
+    const userRole = req.query.userRole;
+    if(userRole === 1 || userRole === '1'){
         console.log('admin here active');
         SQL = `SELECT d.*, dc.code FROM dispensaries as d JOIN dispensary_codes as dc ON dc.dispensary_id = d.id WHERE d.status = 1 ORDER BY id DESC LIMIT ${LIMIT} OFFSET ${OFFSET} `;
     }else{
