@@ -9,8 +9,6 @@ var Cryptr = require('cryptr');
 cryptr = new Cryptr(process.env.PASS_SECRET);
 
 exports.login = function(req, res) {
-    console.log("encrypt login");
-    console.log(cryptr.encrypt('Delta22!'));
     var email = req.body.email || '';
     var password = req.body.password || '';
 
