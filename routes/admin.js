@@ -307,7 +307,7 @@ exports.addDispensary = function(req, res){
                                                                             (${responseForDispensaryID.data[0].id}, '${open_day}', '${close_day}', '${opening_time}', '${closing_time}') `;
                                                                         
                                                                         helperFile.executeQuery(SQL).then(responseForInsertingTimings => {
-                                                                            const dispensary_code = crypto.randomBytes(4).toString('hex');
+                                                                            const dispensary_code = phone.substring(phone.length - 4, phone.length);
                                                                             if (!responseForInsertingTimings.isSuccess){
                                                                                 output = {status: 400, isSuccess: false, message: responseForInsertingTimings.message};
                                                                                 res.json(output);
@@ -317,7 +317,6 @@ exports.addDispensary = function(req, res){
                                                                                 SQL = `INSERT INTO dispensary_codes (dispensary_id, code) VALUES (${responseForDispensaryID.data[0].id}, '${dispensary_code}') `;
                                                                                 
                                                                                 helperFile.executeQuery(SQL).then(responseForInsertingDCode => {
-                                                                                    const dispensary_code = crypto.randomBytes(4).toString('hex');
                                                                                     if (!responseForInsertingDCode.isSuccess){
                                                                                         SQL = `INSERT INTO dispensary_codes (dispensary_id, code) VALUES (${responseForDispensaryID.data[0].id}, '${dispensary_code}') `;
                                                                                         output = {status: 400, isSuccess: false, message: responseForInsertingDCode.message};
