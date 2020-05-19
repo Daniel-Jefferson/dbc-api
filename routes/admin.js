@@ -939,24 +939,6 @@ exports.getDashboardData = (req, res) => {
                         }else{
                             myData.allQuestions = response.data[0].totalQuestions;
 
-                            // Vouchers
-                            if (userRole === 1 || userRole === '1') {
-                                SQL = `SELECT COUNT(*) AS totalVouchers FROM vouchers`;
-                            } else {
-                                SQL = `SELECT COUNT(*) AS totalVouchers FROM vouchers WHERE dispensary_id = ( SELECT id FROM dispensaries WHERE user_id = ${userID} )`;
-                            }
-
-                            helperFile.executeQuery(SQL).then( response => { 
-                                if (!response.isSuccess){
-                                    output = {status: 400, isSuccess: false, message: response.message};
-                                    res.json(output);
-                                }else{
-                                    myData.allVouchers = response.data[0].totalVouchers;
-                                    output = {status: 200, isSuccess: true, message: "Success", data: myData};
-                                    res.json(output);
-                                }
-                            })
-
                             // Recent Users
                             SQL = `SELECT * FROM users ORDER BY id DESC LIMIT 5`;
                             helperFile.executeQuery(SQL).then( response => { 
@@ -965,8 +947,24 @@ exports.getDashboardData = (req, res) => {
                                     res.json(output);
                                 }else{
                                     myData.recentUsers = response.data;
-                                    output = {status: 200, isSuccess: true, message: "Success", data: myData};
-                                    res.json(output);
+
+                                    // Vouchers
+                                    if (userRole === 1 || userRole === '1') {
+                                        SQL = `SELECT COUNT(*) AS totalVouchers FROM vouchers`;
+                                    } else {
+                                        SQL = `SELECT COUNT(*) AS totalVouchers FROM vouchers WHERE dispensary_id = ( SELECT id FROM dispensaries WHERE user_id = ${userID} )`;
+                                    }
+
+                                    helperFile.executeQuery(SQL).then( response => {
+                                        if (!response.isSuccess){
+                                            output = {status: 400, isSuccess: false, message: response.message};
+                                            res.json(output);
+                                        }else{
+                                            myData.allVouchers = response.data[0].totalVouchers;
+                                            output = {status: 200, isSuccess: true, message: "Success", data: myData};
+                                            res.json(output);
+                                        }
+                                    })
                                 }
                             })
                         }
