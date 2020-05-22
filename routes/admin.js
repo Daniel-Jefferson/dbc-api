@@ -199,8 +199,6 @@ exports.addDispensary = function(req, res){
     const latitude = req.body.latitude || '';
     const phone = req.body.phone || '';
     const address = req.body.formatted_address || '';
-    const opening_time = req.body.opening_time || '';
-    const closing_time = req.body.closing_time || '';
     const open_day = req.body.open_day || '';
     const close_day = req.body.close_day || '';
     const deal = req.body.deal || '';
@@ -236,16 +234,6 @@ exports.addDispensary = function(req, res){
         res.json(output);
         return;
     }
-    if (!opening_time){
-        output = {status: 400, isSuccess: false, message: "Opening Time required"};
-        res.json(output);
-        return;
-    }
-    if (!closing_time){
-        output = {status: 400, isSuccess: false, message: "Closing Time required"};
-        res.json(output);
-        return;
-    }
     if (!open_day){
         output = {status: 400, isSuccess: false, message: "Opening Day required"};
         res.json(output);
@@ -256,6 +244,10 @@ exports.addDispensary = function(req, res){
         res.json(output);
         return;
     }
+
+    const shortWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const startWeekday = shortWeekdays.indexOf(open_day);
+    const closeWeekday = shortWeekdays.indexOf(close_day);
 
     SQL = `SELECT * FROM admin WHERE id = ${user_id}`;
     helperFile.executeQuery(SQL).then(responseUser => {
@@ -302,9 +294,34 @@ exports.addDispensary = function(req, res){
                                                                     if (!responseForDispensaryID.isSuccess){
                                                                         output = {status: 400, isSuccess: false, message: responseForDispensaryID.message};
                                                                         res.json(output);
-                                                                    }else{ 
-                                                                        SQL = `INSERT INTO dispensary_timmings (dispensary_id, open_day, close_day, open_time, close_time) VALUES 
-                                                                            (${responseForDispensaryID.data[0].id}, '${open_day}', '${close_day}', '${opening_time}', '${closing_time}') `;
+                                                                    }else{
+                                                                        var time_data = [];
+                                                                        if (startWeekday <= closeWeekday) {
+                                                                            for (let weekday = startWeekday; weekday <= closeWeekday; weekday++) {
+                                                                                time_data.push({
+                                                                                    weekday: weekday,
+                                                                                    open_time: req.body['opening_time'+weekday],
+                                                                                    close_time: req.body['closing_time'+weekday]
+                                                                                });
+                                                                            }
+                                                                        } else {
+                                                                            for (let weekday = 0; weekday <= closeWeekday; weekday++) {
+                                                                                time_data.push({
+                                                                                    weekday: weekday,
+                                                                                    open_time: req.body['opening_time'+weekday],
+                                                                                    close_time: req.body['closing_time'+weekday]
+                                                                                });
+                                                                            }
+                                                                            for (let weekday=startWeekday; weekday < 7; weekday ++) {
+                                                                                time_data.push({
+                                                                                    weekday: weekday,
+                                                                                    open_time: req.body['opening_time'+weekday],
+                                                                                    close_time: req.body['closing_time'+weekday]
+                                                                                });
+                                                                            }
+                                                                        }
+                                                                        SQL = `INSERT INTO dispensary_timmings (dispensary_id, open_day, close_day, time_data) VALUES 
+                                                                            (${responseForDispensaryID.data[0].id}, '${open_day}', '${close_day}', '${JSON.stringify(time_data)}') `;
                                                                         
                                                                         helperFile.executeQuery(SQL).then(responseForInsertingTimings => {
                                                                             const dispensary_code = phone.substring(phone.length - 4, phone.length);
@@ -313,19 +330,19 @@ exports.addDispensary = function(req, res){
                                                                                 res.json(output);
 
                                                                             }else{
+                                                                                       SQL = `INSERT INTO dispensary_codes (dispensary_id, code) VALUES (${responseForDispensaryID.data[0].id}, '${dispensary_code}') `;
 
-                                                                                SQL = `INSERT INTO dispensary_codes (dispensary_id, code) VALUES (${responseForDispensaryID.data[0].id}, '${dispensary_code}') `;
-                                                                                
-                                                                                helperFile.executeQuery(SQL).then(responseForInsertingDCode => {
-                                                                                    if (!responseForInsertingDCode.isSuccess){
-                                                                                        SQL = `INSERT INTO dispensary_codes (dispensary_id, code) VALUES (${responseForDispensaryID.data[0].id}, '${dispensary_code}') `;
-                                                                                        output = {status: 400, isSuccess: false, message: responseForInsertingDCode.message};
-                                                                                        res.json(output);
-                                                                                    }else{
-                                                                                        output = {status: 200, isSuccess: true, message: "Success", data: {'dispensaryId': responseForDispensaryID.data[0].id}};
-                                                                                        res.json(output);
-                                                                                    }
-                                                                                })
+                                                                                       helperFile.executeQuery(SQL).then(responseForInsertingDCode => {
+                                                                                           if (!responseForInsertingDCode.isSuccess){
+                                                                                               SQL = `INSERT INTO dispensary_codes (dispensary_id, code) VALUES (${responseForDispensaryID.data[0].id}, '${dispensary_code}') `;
+                                                                                               output = {status: 400, isSuccess: false, message: responseForInsertingDCode.message};
+                                                                                               res.json(output);
+                                                                                           }else{
+                                                                                               output = {status: 200, isSuccess: true, message: "Success", data: {'dispensaryId': responseForDispensaryID.data[0].id}};
+                                                                                               res.json(output);
+                                                                                           }
+                                                                                       });
+
                                                                                 // output = {status: 200, isSuccess: true, message: "Success", data: {'dispensaryId': responseForDispensaryID.data[0].id}};
                                                                                 // res.json(output);
                                                                             }
@@ -374,8 +391,6 @@ exports.updateDispensary = function(req, res){
     const latitude = req.body.latitude || '';
     const phone = req.body.phone || '';
     const address = req.body.formatted_address || '';
-    const opening_time = req.body.open_time || '';
-    const closing_time = req.body.close_time || '';
     const open_day = req.body.open_day || '';
     const close_day = req.body.close_day || '';
     const dispensaryId = req.body.dispensary_id;
@@ -408,16 +423,6 @@ exports.updateDispensary = function(req, res){
         res.json(output);
         return;
     }
-    if (!opening_time){
-        output = {status: 400, isSuccess: false, message: "Opening Time required"};
-        res.json(output);
-        return;
-    }
-    if (!closing_time){
-        output = {status: 400, isSuccess: false, message: "Closing Time required"};
-        res.json(output);
-        return;
-    }
     if (!open_day){
         output = {status: 400, isSuccess: false, message: "Opening Day required"};
         res.json(output);
@@ -433,6 +438,36 @@ exports.updateDispensary = function(req, res){
         res.json(output);
         return;
     }
+
+    const shortWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const startWeekday = shortWeekdays.indexOf(open_day);
+    const closeWeekday = shortWeekdays.indexOf(close_day);
+    var time_data = [];
+    if (startWeekday <= closeWeekday) {
+        for (let weekday = startWeekday; weekday <= closeWeekday; weekday++) {
+            time_data.push({
+                weekday: weekday,
+                open_time: req.body['opening_time'+weekday],
+                close_time: req.body['closing_time'+weekday]
+            });
+        }
+    } else {
+        for (let weekday = 0; weekday <= closeWeekday; weekday++) {
+            time_data.push({
+                weekday: weekday,
+                open_time: req.body['opening_time'+weekday],
+                close_time: req.body['closing_time'+weekday]
+            });
+        }
+        for (let weekday=startWeekday; weekday < 7; weekday ++) {
+            time_data.push({
+                weekday: weekday,
+                open_time: req.body['opening_time'+weekday],
+                close_time: req.body['closing_time'+weekday]
+            });
+        }
+    }
+
 
     if (helperFile.checkValidPhone(phone)){
         helperFile.checkDispensaryPhone(phone, dispensaryId).then(responsePhoneExists => {
@@ -454,8 +489,7 @@ exports.updateDispensary = function(req, res){
                                         output = {status: 400, isSuccess: false, message: response.message};
                                         res.json(output);
                                     }else{ 
-                                        SQL = `UPDATE dispensary_timmings SET open_day = '${open_day}', close_day = '${close_day}', open_time = '${opening_time}',
-                                         close_time = '${closing_time}' WHERE dispensary_id = ${dispensaryId}`;
+                                        SQL = `UPDATE dispensary_timmings SET open_day = '${open_day}', close_day = '${close_day}', time_data='${JSON.stringify(time_data)}' WHERE dispensary_id = ${dispensaryId}`;
                                                          
                                         helperFile.executeQuery(SQL).then(responseForInsertingTimings => {
                                             if (!responseForInsertingTimings.isSuccess){

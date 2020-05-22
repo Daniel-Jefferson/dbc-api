@@ -594,7 +594,8 @@ exports.getDispensaryTimmings = function(dispensaryID){
           'open_day' : responseForTime.data[0].open_day,
           'close_day': responseForTime.data[0].close_day,
           'open_time': responseForTime.data[0].open_time,
-          'close_time': responseForTime.data[0].close_time
+          'close_time': responseForTime.data[0].close_time,
+          'time_data': JSON.parse(responseForTime.data[0].time_data)
         }
         // var time = responseForTime.data[0].open_day+'-'+responseForTime.data[0].close_day+' '+responseForTime.data[0].open_time+'-'+responseForTime.data[0].close_time;
         output = {status:200, isSuccess: true, message: "Success", timming: time}
