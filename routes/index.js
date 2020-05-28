@@ -23,7 +23,7 @@ router.post('/api/v1/user/verify-code', auth.verifyCode);
 router.get('/api/v1/user/profile', auth.getUserProfile);
 // router.get('/api/v1/fcm/notification', fcm.sendTestFcmNotification);
 router.get('/', function(req, res, next){
-    res.send('BackEnd BudsBank is running V2.');
+    res.send('v' + process.env.API_VERSION);
 });
 
 router.post('/forget-password', auth.forgotPassword);
