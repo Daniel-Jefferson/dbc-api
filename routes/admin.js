@@ -397,6 +397,8 @@ exports.updateDispensary = function(req, res){
     const deal = req.body.deal || '';
     const subscription_type = 'free';
     const status = req.body.status;
+    const product_list = req.body.product_list;
+    const removeProductIds = req.body.removeProductIds;
 
     if (!name){
         output = {status: 400, isSuccess: false, message: "Title required"};
@@ -496,6 +498,17 @@ exports.updateDispensary = function(req, res){
                                                 output = {status: 400, isSuccess: false, message: responseForInsertingTimings.message};
                                                 res.json(output);
                                             }else{
+                                                SQL = `DELETE FROM dispensary_products WHERE id in (${removeProductIds.join()})`;
+                                                helperFile.executeQuery(SQL);
+                                                for (const product of product_list) {
+                                                    if (product.id !== null) {
+                                                        SQL = `UPDATE dispensary_products SET product_image = '${product.product_image}', product_name = '${product.product_name}', dispensary_id=${dispensaryId} WHERE id = ${product.id}`;
+                                                        helperFile.executeQuery(SQL);
+                                                    } else {
+                                                        SQL = `INSERT INTO dispensary_products SET product_image = '${product.product_image}', product_name = '${product.product_name}', dispensary_id = ${dispensaryId}`;
+                                                        helperFile.executeQuery(SQL);
+                                                    }
+                                                }
                                                 output = {status: 200, isSuccess: true, message: "Success", data: {'dispensaryId': dispensaryId}};
                                                 res.json(output);
                                             }
@@ -700,8 +713,16 @@ exports.getDispensaryById = function(req, res){
                         responseCheck.data[0]['timmings'] = timmings.timming;
                         delete responseCheck.data[0]['opening_time'];
                         delete responseCheck.data[0]['closing_time'];
-                        output = {status: 200, isSuccess: true, message: "Success", data: responseCheck.data};
-                        res.json(output);
+                        dispensaries.getDispensaryProducts(responseCheck.data[0].id).then(products => {
+                            if (!products.isSuccess) {
+                                output = {status: 400, isSuccess: false, message: products.message};
+                                res.json(output);
+                            } else {
+                                responseCheck.data[0]['products'] = products.products;
+                                output = {status: 200, isSuccess: true, message: "Success", data: responseCheck.data};
+                                res.json(output);
+                            }
+                        })
                     }
                 })
             }else{

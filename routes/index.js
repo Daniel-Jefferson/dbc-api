@@ -328,6 +328,36 @@ router.post('/admin/dispensary/add/image', upload.single('image'), function (req
     })
 });
 
+// TODO: Listing image upload should go to nested folder
+router.post('/admin/dispensary/add/product/image', upload.single('image'), function (req, res) {
+    const { file } = req;
+    const contentType = file.mimetype
+
+    const bucket = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION
+    })
+
+    const params = {
+        Bucket: process.env.S3_BUCKET,
+        Key: 'listings/products/' + file.originalname,
+        Body: file.buffer,
+        ACL: 'public-read',
+        ContentType: contentType
+    }
+
+    bucket.upload(params, function (err, data) {
+        if (err) {
+            return res.json({ status: 400, message: err.message })
+        }
+
+        var imagePath = data.Location
+
+        res.json({ status: 200, message: "Success", imagePath: imagePath })
+    })
+});
+
 router.post('/admin/dispensary/add', admin.addDispensary);
 router.get('/admin/dispensary/all', admin.activeDispensaries);
 router.post('/admin/dispensary/disable', admin.markDispensaryDisabled);

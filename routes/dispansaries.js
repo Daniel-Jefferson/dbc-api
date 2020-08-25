@@ -604,3 +604,27 @@ exports.getDispensaryTimmings = function(dispensaryID){
     })
   });
 };
+
+
+exports.getDispensaryProducts = function (dispensaryID) {
+    return new Promise((resolve) => {
+        SQL = `SELECT * FROM dispensary_products WHERE dispensary_id = ${dispensaryID}`;
+        helperFile.executeQuery(SQL).then(responseForProduct => {
+            if (!responseForProduct.isSuccess) {
+                output = {status: 400, isSuccess: false, message: responseForProduct.message}
+                resolve(output);
+            } else {
+                const products = responseForProduct.data.map(product => {
+                    return {
+                        'id': product.id,
+                        'dispensary_id': product.dispensary_id,
+                        'product_image': product.product_image,
+                        'product_name': product.product_name
+                    }
+                })
+                output = {status: 200, isSuccess: true, message: 'Success', products: products}
+                resolve(output);
+            }
+        })
+    });
+}

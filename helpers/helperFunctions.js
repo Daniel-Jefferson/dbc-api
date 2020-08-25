@@ -168,13 +168,17 @@ exports.checkFollowedDispensaries = function (dispensaries, userID) {
                   if (!responseForTime.isSuccess){ console.log(responseForTime);
                     output = {status: 400, isSuccess: false, message: responseForTime.message};
                     resolve(output);
-                  } { 
-                    //console.log(responseForTime.timming);
+                  } else {
                     dispensaries[index]['open_close_time'] = responseForTime.timming;
-                    // if((index+1) === dispensaries.length){
-                    //   console.log('first');
-                    //   callback(null, dispensaries);
-                    // }
+                  }
+                });
+
+                dispensary.getDispensaryProducts(data.id).then(responseForProducts => {
+                  if (!responseForProducts.isSuccess) {
+                    output = {status:400, isSuccess: false, message: responseForProducts.message};
+                    resolve(output);
+                  } else {
+                    dispensaries[index]['products'] = responseForProducts.products;
                   }
                 });
 
