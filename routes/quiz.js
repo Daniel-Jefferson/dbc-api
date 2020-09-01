@@ -113,6 +113,13 @@ exports.saveQuizResult = function (req, res) {
                                                        }
                                                    });
                                                }else{
+												   SQL = `UPDATE coins SET coins = coins + 1 WHERE user_id = ${userID}`;
+												   helperFile.executeQuery(SQL).then(updateCoins=>{
+													   if (!updateCoins.isSuccess){
+														   output = {status: 400, isSuccess: false, message: updateCoins.message};
+														   resolve(output);
+													   }
+												   });
                                                    const remainCount = responseForDisabled.data.length > 0 ? 0 : 1;
                                                    output = {status: 200, isSuccess: true, message: "Quiz Results saved successfully", remainCount: remainCount};
                                                    res.json(output);
