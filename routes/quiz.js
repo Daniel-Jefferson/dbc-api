@@ -94,36 +94,24 @@ exports.saveQuizResult = function (req, res) {
                                                        }
                                                    });
                                                }
-                                               if (status === 'true'){
-                                                   helperFile.addVoucher(userID, dispensaryID).then(responseForAddVoucher=>{
-                                                       if (!responseForAddVoucher.isSuccess){
-                                                           output = {status: 400, isSuccess: false, message: responseForAddVoucher.message};
-                                                       }else{
-                                                           SQL = `SELECT ${parseInt(process.env.COINS)} as reward, v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
-                                                    FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.id = ${responseForAddVoucher.voucher.insertId}`;
-                                                           helperFile.executeQuery(SQL).then(responseForGetVoucher => {
-                                                               if (!responseForGetVoucher.isSuccess){
-                                                                   output = {status: 400, isSuccess: false, message: responseForGetVoucher.message};
-                                                                   res.json(output);
-                                                               } else{
-                                                                   output = {status: 200, isSuccess: true, message: "Quiz Results saved successfully", voucher : responseForGetVoucher.data[0], remainCount: 0};
-                                                                   res.json(output);
-                                                               }
-                                                           });
-                                                       }
-                                                   });
-                                               }else{
-												   SQL = `UPDATE coins SET coins = coins + 1 WHERE user_id = ${userID}`;
-												   helperFile.executeQuery(SQL).then(updateCoins=>{
-													   if (!updateCoins.isSuccess){
-														   output = {status: 400, isSuccess: false, message: updateCoins.message};
-														   resolve(output);
-													   }
-												   });
-                                                   const remainCount = responseForDisabled.data.length > 0 ? 0 : 1;
-                                                   output = {status: 200, isSuccess: true, message: "Quiz Results saved successfully", remainCount: remainCount};
-                                                   res.json(output);
-                                               }
+											   helperFile.addVoucher(userID, dispensaryID, status).then(responseForAddVoucher=>{
+												   if (!responseForAddVoucher.isSuccess){
+													   output = {status: 400, isSuccess: false, message: responseForAddVoucher.message};
+												   }else{
+													   SQL = `SELECT v.reward, v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
+												FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.id = ${responseForAddVoucher.voucher.insertId}`;
+													   helperFile.executeQuery(SQL).then(responseForGetVoucher => {
+														   if (!responseForGetVoucher.isSuccess){
+															   output = {status: 400, isSuccess: false, message: responseForGetVoucher.message};
+															   res.json(output);
+														   } else{
+																const remainCount = responseForDisabled.data.length > 0 ? 0 : 1;
+																output = {status: 200, isSuccess: true, message: "Quiz Results saved successfully", voucher : responseForGetVoucher.data[0], remainCount: remainCount};
+																res.json(output);
+														   }
+													   });
+												   }
+											   });
                                            }
                                        });
                                        helperFile.addUserDisabledDispensary(userID, dispensaryID, status === 'true' ? 0 : 1).then(responseForAddUserDisabledDispensary =>{

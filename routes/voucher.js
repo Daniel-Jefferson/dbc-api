@@ -76,14 +76,14 @@ exports.getVoucherContent = function (userID, type, limit, offset, currentPage, 
                         // SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
                         //     FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
                         //     v.status = 'true' AND v.expiry > CURRENT_TIMESTAMP LIMIT ${limit} OFFSET ${offset}`;
-                        SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
+                        SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, v.reward, d.name as dispensary_name, d.address as dispensary_address
                         FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
                         v.status = 'true' AND v.expiry > CURRENT_TIMESTAMP`;
                     }else{
                         // SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
                         //     FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
                         //     v.status = 'false' ORDER BY v.id DESC LIMIT ${limit} OFFSET ${offset}`;
-                        SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, d.name as dispensary_name, d.address as dispensary_address
+                        SQL = `SELECT v.id as voucher_id, v.dispensary_id, v.expiry, v.reward, d.name as dispensary_name, d.address as dispensary_address
                         FROM vouchers AS v INNER JOIN dispensaries AS d ON v.dispensary_id = d.id WHERE v.user_id = ${userID} AND 
                         v.status = 'false' ORDER BY v.id DESC`;
                     }
