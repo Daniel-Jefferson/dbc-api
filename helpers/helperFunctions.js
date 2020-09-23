@@ -470,15 +470,15 @@ exports.getRandomQuestion = function (questions, userID) {
   });
 };
 
-exports.addVoucher = function (userID, dispensaryID) {
+exports.addVoucher = function (userID, dispensaryID, status) {
     return new Promise((resolve)=>{
-      SQL = `INSERT INTO vouchers SET user_id = ${userID}, dispensary_id = ${dispensaryID}, expiry = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ${process.env.VOUCHER_EXPIRY} DAY)`;
+      SQL = `INSERT INTO vouchers SET user_id = ${userID}, dispensary_id = ${dispensaryID}, reward = '${status === 'true' ? process.env.COINS : 1}', expiry = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ${process.env.VOUCHER_EXPIRY} DAY)`;
       exports.executeQuery(SQL).then(response=>{
          if (!response.isSuccess){
              output = {status: 400, isSuccess: false, message: response.message};
              resolve(output);
          } else{
-             SQL = `UPDATE coins SET coins = coins + ${process.env.COINS} WHERE user_id = ${userID}`;
+             SQL = `UPDATE coins SET coins = coins + ${status === 'true' ? process.env.COINS : 1} WHERE user_id = ${userID}`;
              exports.executeQuery(SQL).then(updateCoins=>{
                 if (!updateCoins.isSuccess){
                     output = {status: 400, isSuccess: false, message: updateCoins.message};
@@ -566,11 +566,9 @@ exports.addThingsToVoucherResponse = function (vouchers, type) {
   return new Promise((resolve)=>{
      async.eachOfSeries(vouchers, function (data, index, callback) {
          if (type === 'available'){
-             vouchers[index]["reward"] = parseInt(process.env.COINS);
              vouchers[index]["is_available"] = true;
              vouchers[index]["is_redeemed"] = false;
          }else{
-             vouchers[index]["reward"] = parseInt(process.env.COINS);
              vouchers[index]["is_available"] = false;
              vouchers[index]["is_redeemed"] = true;
          }
